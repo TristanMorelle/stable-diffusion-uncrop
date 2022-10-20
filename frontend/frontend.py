@@ -17,6 +17,7 @@ import gradio as gr
 from frontend.css_and_js import css, js, call_JS
 from frontend.job_manager import JobManager
 import frontend.ui_functions as uifn
+import frontend.frontend_resize as f_resize
 import uuid
 import torch
 import os
@@ -205,6 +206,7 @@ def draw_gradio_ui(opt, img2img=lambda x: x, txt2img=lambda x: x, imgproc=lambda
                     with gr.Column():
                         gr.Markdown('#### Img2Img Input')
                         img2img_image_mask = gr.Image(
+                            label='Mask',
                             value=sample_img2img,
                             source="upload",
                             interactive=True,
@@ -213,6 +215,7 @@ def draw_gradio_ui(opt, img2img=lambda x: x, txt2img=lambda x: x, imgproc=lambda
                             image_mode="RGBA"
                         )
                         img2img_image_editor = gr.Image(
+                            label = 'Crop',
                             value=sample_img2img,
                             source="upload",
                             interactive=True,
@@ -222,14 +225,21 @@ def draw_gradio_ui(opt, img2img=lambda x: x, txt2img=lambda x: x, imgproc=lambda
                             image_mode="RGBA",
                             elem_id="img2img_editor"
                         )
+                        with gr.Row():
+                            Enable_Editor_btn = gr.Button("Enable Editor")
+                            def update_editors():
+                                return gr.update(interactive=True), gr.update(interactive=True)
+                            Enable_Editor_btn.click(update_editors,[],[img2img_image_editor, img2img_image_mask])
+                        with gr.Row():
+
+                            img2img_painterro_btn = gr.Button("Advanced Editor")
 
                         with gr.Tabs():
                             with gr.TabItem("Editor Options"):
                                 with gr.Row():
                                     # disable Uncrop for now
-                                    choices=["Mask", "Crop", "Uncrop"]
-                                    #choices=["Mask", "Crop"]
-                                    img2img_image_editor_mode = gr.Radio(choices=choices,
+                                    # choices=["Mask", "Crop", "Uncrop"]
+                                    img2img_image_editor_mode = gr.Radio(choices=["Mask", "Crop"],
                                                                          label="Image Editor Mode",
                                                                          value="Mask", elem_id='edit_mode_select',
                                                                          visible=True)
@@ -245,17 +255,14 @@ def draw_gradio_ui(opt, img2img=lambda x: x, txt2img=lambda x: x, imgproc=lambda
                                     img2img_mask_blur_strength = gr.Slider(minimum=1, maximum=100, step=1,
                                                                            label="How much blurry should the mask be? (to avoid hard edges)",
                                                                            value=img2img_defaults['mask_blur_strength'], visible=True)
-
-                                    img2img_resize = gr.Radio(label="Resize mode",
-                                                              choices=["Just resize", "Crop and resize",
-                                                                       "Resize and fill"],
-                                                              type="index",
-                                                              value=img2img_resize_modes[
-                                                                  img2img_defaults['resize_mode']], visible=False)
-
-                                img2img_painterro_btn = gr.Button("Advanced Editor")
                             with gr.TabItem("Hints"):
                                 img2img_help = gr.Markdown(visible=False, value=uifn.help_text)
+
+                        # Resize tab
+                        # ==============================================================================================
+                        resize_tab = f_resize.Resize_Tab()
+                        img2img_resize = resize_tab.build_resize_tab(img2img_resize_modes = img2img_resize_modes,
+                                                                     img2img_defaults = img2img_defaults)
 
                     with gr.Column():
                         gr.Markdown('#### Img2Img Results')
@@ -355,6 +362,27 @@ def draw_gradio_ui(opt, img2img=lambda x: x, txt2img=lambda x: x, imgproc=lambda
                 #     [img2img_image_editor, img2img_resize, img2img_width, img2img_height],
                 #     img2img_image_mask
                 # )
+
+                # img2img_resize.change(
+                #     uifn.resize_image,
+                #     [img2img_resize,
+                #      img2img_image_editor,
+                #      img2img_width,
+                #      img2img_height,
+                #      ],
+                #     [])
+
+
+                # Resize tab
+                # ==============================================================================================
+                resize_tab.connect_signals(img2img_image_editor = img2img_image_editor,
+                                            img2img_image_mask = img2img_image_mask,
+                                            img2img_image_editor_mode = img2img_image_editor_mode,
+                                            img2img_width = img2img_width,
+                                            img2img_height = img2img_height,
+                                            tabs = tabs)
+
+                resize_tab.init_ui()
 
                 output_txt2img_copy_to_input_btn.click(
                     uifn.copy_img_to_input,

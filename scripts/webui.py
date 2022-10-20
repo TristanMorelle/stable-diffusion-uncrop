@@ -19,6 +19,7 @@ import cv2
 
 from logger import logger, set_logger_verbosity, quiesce_logger
 from perlin import perlinNoise
+from frontend import image_processing as img_p
 from frontend.frontend import draw_gradio_ui
 from frontend.job_manager import JobManager, JobInfo
 from frontend.image_metadata import ImageMetadata
@@ -2470,11 +2471,7 @@ img2img_mask_modes = [
     "Regenerate only masked area",
 ]
 
-img2img_resize_modes = [
-    "Just resize",
-    "Crop and resize",
-    "Resize and fill",
-]
+img2img_resize_modes = img_p.get_resize_funtions()
 
 img2img_defaults = {
     'prompt': '',

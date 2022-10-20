@@ -16,16 +16,21 @@
 import re
 import gradio as gr
 from PIL import Image, ImageFont, ImageDraw, ImageFilter, ImageOps
+from frontend import image_processing as img_p
 from io import BytesIO
 import base64
 import re
 
 
 def change_image_editor_mode(choice, cropped_image, masked_image, resize_mode, width, height):
+    # dont resize
+    resize_mode = 0
+    # from crop to mask
     if choice == "Mask":
         update_image_result = update_image_mask(cropped_image, resize_mode, width, height)
         return [gr.update(visible=False), update_image_result, gr.update(visible=False), gr.update(visible=True), gr.update(visible=False), gr.update(visible=True), gr.update(visible=True), gr.update(visible=True)]
 
+    # from mask to crop
     update_image_result = update_image_mask(masked_image["image"] if masked_image is not None else None, resize_mode, width, height)
     return [update_image_result, gr.update(visible=False), gr.update(visible=True), gr.update(visible=False), gr.update(visible=True), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)]
 
@@ -147,41 +152,191 @@ help_text = """
     If anything breaks, try switching modes again, switch tabs, clear the image, or reload.
 """
 
-def resize_image(resize_mode, im, width, height):
+# def resize_image_olc(resize_mode, im, width, height):
+#     LANCZOS = (Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS)
+#     if resize_mode == 0:
+#         res = im.resize((width, height), resample=LANCZOS)
+#     elif resize_mode == 1:
+#         ratio = width / height
+#         src_ratio = im.width / im.height
+#
+#         src_w = width if ratio > src_ratio else im.width * height // im.height
+#         src_h = height if ratio <= src_ratio else im.height * width // im.width
+#
+#         resized = im.resize((src_w, src_h), resample=LANCZOS)
+#         res = Image.new("RGBA", (width, height))
+#         res.paste(resized, box=(width // 2 - src_w // 2, height // 2 - src_h // 2))
+#     else:
+#         ratio = width / height
+#         src_ratio = im.width / im.height
+#
+#         src_w = width if ratio < src_ratio else im.width * height // im.height
+#         src_h = height if ratio >= src_ratio else im.height * width // im.width
+#
+#         resized = im.resize((src_w, src_h), resample=LANCZOS)
+#         res = Image.new("RGBA", (width, height))
+#         res.paste(resized, box=(width // 2 - src_w // 2, height // 2 - src_h // 2))
+#
+#         if ratio < src_ratio:
+#             fill_height = height // 2 - src_h // 2
+#             res.paste(resized.resize((width, fill_height), box=(0, 0, width, 0)), box=(0, 0))
+#             res.paste(resized.resize((width, fill_height), box=(0, resized.height, width, resized.height)), box=(0, fill_height + src_h))
+#         elif ratio > src_ratio:
+#             fill_width = width // 2 - src_w // 2
+#             res.paste(resized.resize((fill_width, height), box=(0, 0, 0, height)), box=(0, 0))
+#             res.paste(resized.resize((fill_width, height), box=(resized.width, 0, resized.width, height)), box=(fill_width + src_w, 0))
+#
+#     return res
+
+
+def filter_settings_dict(resize_settings, func):
+    """
+    filter *args for matching settings of given function
+    """
+    resize_settings_filtered = dict()
+    attrs = func.__code__.co_varnames[:func.__code__.co_argcount]
+    # check if all function parameters are provided
+    if not all(elem in resize_settings.keys() for elem in attrs):
+        raise RuntimeError('missing ui vars from function', [i for i in attrs if i not in resize_settings.keys()])
+    # get rid of other params
+    for i,j in resize_settings.items():
+        if i in attrs:
+            resize_settings_filtered[i] = j
+    return resize_settings_filtered
+
+def resize_image(resize_mode, im, width, height, resize_settings = None, debug = False):
+    """
+    unpack settings and call resize
+    """
+    if im is None or width <= 0 or height <= 0:
+        return
+
+    if width is not None or height is not None:
+        # make int in case of floot, None is no resize of img, just fill
+        width, height = int(width), int(height)
+
     LANCZOS = (Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS)
-    if resize_mode == 0:
+
+    if debug:
+        print ('========= doing resize_mode', resize_mode, width, height, im)
+        img_p.add_margin(img = im, margins = (10,10,10,10), colour='red').show()
+
+    # add size to settings dict
+    if resize_settings:
+        # just resize to frame, then perform global scale, so None first
+        resize_settings["width"] = None
+        resize_settings["height"] = None
+        resize_settings["img"] = im
+
+    if resize_mode == 0: # dont resize
+        res = im
+
+    elif resize_mode == 1: # resize max
         res = im.resize((width, height), resample=LANCZOS)
-    elif resize_mode == 1:
-        ratio = width / height
-        src_ratio = im.width / im.height
 
-        src_w = width if ratio > src_ratio else im.width * height // im.height
-        src_h = height if ratio <= src_ratio else im.height * width // im.width
+    elif resize_mode == 2: # Resize and fill
+        resize_settings = filter_settings_dict(resize_settings = resize_settings, func = img_p.repeat_edges)
+        # res = img_p.repeat_edges(img=im,
+        #                          fill_border_size=(0,0,0,0),
+        #                          sample=0,
+        #                          width=None,
+        #                          height=None,
+        #                          bg_color='auto_edge',
+        #                          pre_fill_square='auto_edge',
+        #                          shrink_faded_edges=0,
+        #                          mask_final=False,
+        #                          mask_blur_range=100,
+        #                          mask_bright=2,
+        #                          mask_dither_opacity=0.01,
+        #                          debug=False
+        #                          )
+        print ('resize_settings ', resize_settings)
+        res = img_p.repeat_edges(**resize_settings)
 
-        resized = im.resize((src_w, src_h), resample=LANCZOS)
-        res = Image.new("RGBA", (width, height))
-        res.paste(resized, box=(width // 2 - src_w // 2, height // 2 - src_h // 2))
+    elif resize_mode == 3: # Repeat edges
+        resize_settings = filter_settings_dict(resize_settings = resize_settings, func = img_p.repeat_edges)
+        # res = img_p.repeat_edges(img=im,
+        #                          fill_border_size=None,
+        #                          sample=1,
+        #                          width=None,
+        #                          height=None,
+        #                          bg_color='auto_edge',
+        #                          pre_fill_square='auto_edge',
+        #                          shrink_faded_edges=0,
+        #                          mask_final=True,
+        #                          mask_blur_range=100,
+        #                          mask_bright=2,
+        #                          mask_dither_opacity=0.01,
+        #                          debug=False
+        #                          )
+        print ('resize_settings ', resize_settings)
+        res = img_p.repeat_edges(**resize_settings)
+
+    elif resize_mode == 4:  # Scatter Fill
+
+
+        resize_settings = filter_settings_dict(resize_settings = resize_settings, func = img_p.scatter_bg)
+        # im = img_p.fill_content_proportionate(img=im, width=width, height=height)
+        print ('resize_settings ', resize_settings)
+        res = img_p.scatter_bg(**resize_settings)
+
+        # res = img_p.scatter_bg(img=im,
+        #                        width=None,
+        #                        height=None,
+        #                        bg_colour='auto_edge',
+        #                        border_thickness=(0, 0, 0, 0),  # natural spread
+        #                        auto_border_size=False,
+        #                        auto_border_ratio=20,
+        #                        comp_img_edge=True,
+        #                        fill_bg=True,
+        #                        # global scatter
+        #                        max_init_it=50,
+        #                        max_init_dist=2000,
+        #                        # local growth
+        #                        max_opt=50,
+        #                        max_opt_dist=150,
+        #
+        #                        blur_bg_amount=0,
+        #                        mask_final=True,
+        #                        mask_blur_range=100,
+        #                        mask_bright=2,
+        #                        comp_blur=1,
+        #                        debug=False)
+
+    elif resize_mode == 5:  # fill promportionate
+        res = img_p.fill_content_proportionate(img = im, width = width, height = height)
+
+    elif resize_mode == 6:  # fill frame
+        res = img_p.fill_frame_promportionate(img = im, width = width, height = height)
+
+    elif resize_mode == 7:  # Crop content
+        res = img_p.crop_content(img = im)
+
     else:
-        ratio = width / height
-        src_ratio = im.width / im.height
+        raise RuntimeError('unknown resize mode', resize_mode)
 
-        src_w = width if ratio < src_ratio else im.width * height // im.height
-        src_h = height if ratio >= src_ratio else im.height * width // im.width
-
-        resized = im.resize((src_w, src_h), resample=LANCZOS)
-        res = Image.new("RGBA", (width, height))
-        res.paste(resized, box=(width // 2 - src_w // 2, height // 2 - src_h // 2))
-
-        if ratio < src_ratio:
-            fill_height = height // 2 - src_h // 2
-            res.paste(resized.resize((width, fill_height), box=(0, 0, width, 0)), box=(0, 0))
-            res.paste(resized.resize((width, fill_height), box=(0, resized.height, width, resized.height)), box=(0, fill_height + src_h))
-        elif ratio > src_ratio:
-            fill_width = width // 2 - src_w // 2
-            res.paste(resized.resize((fill_width, height), box=(0, 0, 0, height)), box=(0, 0))
-            res.paste(resized.resize((fill_width, height), box=(resized.width, 0, resized.width, height)), box=(fill_width + src_w, 0))
+    if debug:
+        img_p.add_margin(img=res, margins=(10, 10, 10, 10), colour='green').show()
 
     return res
+
+def crop_btn_procedure(resize_mode, img2img_image_editor, img2img_image_mask, img2img_image_editor_mode, width, height,
+                       resize_settings = None):
+    """
+    resize wrapper for button
+    ====================================================================================================================
+    """
+    im = None
+    if img2img_image_editor_mode is not None and img2img_image_editor_mode == 'Mask':
+        im = img2img_image_mask['image']
+    elif img2img_image_editor_mode is not None and img2img_image_editor_mode == 'Crop':
+        im = img2img_image_editor
+    pil_im = resize_image(resize_mode = resize_mode, im = im, width = width, height = height,
+                          resize_settings = resize_settings) if im is not None else None
+    if img2img_image_editor_mode == 'Mask':
+        return gr.update(visible = False, interactive = False), gr.update(value = pil_im, visible = True), gr.update(selected='img2img_tab')
+    if img2img_image_editor_mode == 'Crop':
+        return gr.update(value = pil_im, visible = True, interactive = False), gr.update(visible = False), gr.update(selected='img2img_tab')
 
 def update_dimensions_info(width, height):
     pixel_count_formated = "{:,.0f}".format(width * height)
