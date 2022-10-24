@@ -28,15 +28,20 @@ def change_image_editor_mode(choice, cropped_image, masked_image, resize_mode, w
     # from crop to mask
     if choice == "Mask":
         update_image_result = update_image_mask(cropped_image, resize_mode, width, height)
-        return [gr.update(visible=False), update_image_result, gr.update(visible=False), gr.update(visible=True), gr.update(visible=False), gr.update(visible=True), gr.update(visible=True), gr.update(visible=True)]
+        return [gr.update(visible=False), update_image_result, gr.update(visible=False), gr.update(visible=True),
+                gr.update(visible=False), gr.update(visible=True), gr.update(visible=True), gr.update(visible=True)]
 
     # from mask to crop
-    update_image_result = update_image_mask(masked_image["image"] if masked_image is not None else None, resize_mode, width, height)
-    return [update_image_result, gr.update(visible=False), gr.update(visible=True), gr.update(visible=False), gr.update(visible=True), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)]
+    update_image_result = update_image_mask(masked_image["image"] if masked_image is not None else None, resize_mode,
+                                            width, height)
+    return [update_image_result, gr.update(visible=False), gr.update(visible=True), gr.update(visible=False),
+            gr.update(visible=True), gr.update(visible=False), gr.update(visible=False), gr.update(visible=False)]
+
 
 def update_image_mask(cropped_image, resize_mode, width, height):
     resized_cropped_image = resize_image(resize_mode, cropped_image, width, height) if cropped_image else None
     return gr.update(value=resized_cropped_image, visible=True)
+
 
 def toggle_options_gfpgan(selection):
     if 0 in selection:
@@ -44,11 +49,13 @@ def toggle_options_gfpgan(selection):
     else:
         return gr.update(visible=False)
 
+
 def toggle_options_upscalers(selection):
     if 1 in selection:
         return gr.update(visible=True)
     else:
         return gr.update(visible=False)
+
 
 def toggle_options_realesrgan(selection):
     if selection == 0 or selection == 1 or selection == 3:
@@ -56,14 +63,16 @@ def toggle_options_realesrgan(selection):
     else:
         return gr.update(visible=False)
 
+
 def toggle_options_gobig(selection):
     if selection == 1:
-        #print(selection)
+        # print(selection)
         return gr.update(visible=True)
     if selection == 3:
         return gr.update(visible=True)
     else:
         return gr.update(visible=False)
+
 
 def toggle_options_ldsr(selection):
     if selection == 2 or selection == 3:
@@ -71,11 +80,14 @@ def toggle_options_ldsr(selection):
     else:
         return gr.update(visible=False)
 
+
 def increment_down(value):
     return value - 1
 
+
 def increment_up(value):
     return value + 1
+
 
 def copy_img_to_lab(img):
     try:
@@ -86,6 +98,8 @@ def copy_img_to_lab(img):
         return processed_image, tab_update,
     except IndexError:
         return [None, None]
+
+
 def copy_img_params_to_lab(params):
     try:
         prompt = params[0][0].replace('\n', ' ').replace('\r', '')
@@ -93,18 +107,21 @@ def copy_img_params_to_lab(params):
         steps = int(params[7][1])
         cfg_scale = float(params[9][1])
         sampler = params[11][1]
-        return prompt,seed,steps,cfg_scale,sampler
+        return prompt, seed, steps, cfg_scale, sampler
     except IndexError:
         return [None, None]
+
+
 def copy_img_to_input(img):
     try:
         image_data = re.sub('^data:image/.+;base64,', '', img)
         processed_image = Image.open(BytesIO(base64.b64decode(image_data)))
         tab_update = gr.update(selected='img2img_tab')
         img_update = gr.update(value=processed_image)
-        return processed_image, processed_image , tab_update
+        return processed_image, processed_image, tab_update
     except IndexError:
         return [None, None]
+
 
 def copy_img_to_edit(img):
     try:
@@ -117,6 +134,7 @@ def copy_img_to_edit(img):
     except IndexError:
         return [None, None]
 
+
 def copy_img_to_mask(img):
     try:
         image_data = re.sub('^data:image/.+;base64,', '', img)
@@ -127,7 +145,6 @@ def copy_img_to_mask(img):
         return processed_image, tab_update, mode_update
     except IndexError:
         return [None, None]
-
 
 
 def copy_img_to_upscale_esrgan(img):
@@ -151,6 +168,7 @@ help_text = """
 
     If anything breaks, try switching modes again, switch tabs, clear the image, or reload.
 """
+
 
 # def resize_image_olc(resize_mode, im, width, height):
 #     LANCZOS = (Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS)
@@ -199,12 +217,12 @@ def filter_settings_dict(resize_settings, func):
     if not all(elem in resize_settings.keys() for elem in attrs):
         raise RuntimeError('missing ui vars from function', [i for i in attrs if i not in resize_settings.keys()])
     # get rid of other params
-    for i,j in resize_settings.items():
+    for i, j in resize_settings.items():
         if i in attrs:
             resize_settings_filtered[i] = j
     return resize_settings_filtered
 
-def resize_image(resize_mode, im, width, height, resize_settings = None, debug = False):
+def resize_image(resize_mode, im, width, height, resize_settings=None, debug=False):
     """
     unpack settings and call resize
     """
@@ -217,9 +235,13 @@ def resize_image(resize_mode, im, width, height, resize_settings = None, debug =
 
     LANCZOS = (Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS)
 
+    # convert string if not int
+    if resize_mode in img_p.get_resize_funtions():
+        resize_mode = img_p.get_resize_funtions().index(resize_mode)
+
     if debug:
-        print ('========= doing resize_mode', resize_mode, width, height, im)
-        img_p.add_margin(img = im, margins = (10,10,10,10), color='red').show()
+        print('========= doing resize_mode', resize_mode, width, height, im)
+        img_p.add_margin(img=im, margins=(10, 10, 10, 10), color='red').show()
 
     # add size to settings dict
     if resize_settings:
@@ -228,89 +250,34 @@ def resize_image(resize_mode, im, width, height, resize_settings = None, debug =
         resize_settings["height"] = None
         resize_settings["img"] = im
 
-    if resize_mode == 0: # dont resize
+    if resize_mode == 0:  # dont resize
         res = im
 
-    elif resize_mode == 1: # resize max
+    elif resize_mode == 1:  # resize max
         res = im.resize((width, height), resample=LANCZOS)
 
-    elif resize_mode == 2: # Resize and fill
-        resize_settings = filter_settings_dict(resize_settings = resize_settings, func = img_p.repeat_edges)
-        # res = img_p.repeat_edges(img=im,
-        #                          fill_border_size=(0,0,0,0),
-        #                          sample=0,
-        #                          width=None,
-        #                          height=None,
-        #                          bg_color='auto_edge',
-        #                          pre_fill_square='auto_edge',
-        #                          shrink_faded_edges=0,
-        #                          mask_final=False,
-        #                          mask_blur_range=100,
-        #                          mask_bright=2,
-        #                          mask_dither_opacity=0.01,
-        #                          debug=False
-        #                          )
-        print ('resize_settings ', resize_settings)
+    elif resize_mode == 2:  # Resize and fill
+        resize_settings = filter_settings_dict(resize_settings=resize_settings, func=img_p.repeat_edges)
+
         res = img_p.repeat_edges(**resize_settings)
 
-    elif resize_mode == 3: # Repeat edges
-        resize_settings = filter_settings_dict(resize_settings = resize_settings, func = img_p.repeat_edges)
-        # res = img_p.repeat_edges(img=im,
-        #                          fill_border_size=None,
-        #                          sample=1,
-        #                          width=None,
-        #                          height=None,
-        #                          bg_color='auto_edge',
-        #                          pre_fill_square='auto_edge',
-        #                          shrink_faded_edges=0,
-        #                          mask_final=True,
-        #                          mask_blur_range=100,
-        #                          mask_bright=2,
-        #                          mask_dither_opacity=0.01,
-        #                          debug=False
-        #                          )
-        print ('resize_settings ', resize_settings)
+    elif resize_mode == 3:  # Repeat edges
+        resize_settings = filter_settings_dict(resize_settings=resize_settings, func=img_p.repeat_edges)
         res = img_p.repeat_edges(**resize_settings)
 
     elif resize_mode == 4:  # Scatter Fill
 
-
-        resize_settings = filter_settings_dict(resize_settings = resize_settings, func = img_p.scatter_bg)
-        # im = img_p.fill_content_proportionate(img=im, width=width, height=height)
-        print ('resize_settings ', resize_settings)
+        resize_settings = filter_settings_dict(resize_settings=resize_settings, func=img_p.scatter_bg)
         res = img_p.scatter_bg(**resize_settings)
 
-        # res = img_p.scatter_bg(img=im,
-        #                        width=None,
-        #                        height=None,
-        #                        bg_colour='auto_edge',
-        #                        border_thickness=(0, 0, 0, 0),  # natural spread
-        #                        auto_border_size=False,
-        #                        auto_border_ratio=20,
-        #                        comp_img_edge=True,
-        #                        fill_bg=True,
-        #                        # global scatter
-        #                        max_init_it=50,
-        #                        max_init_dist=2000,
-        #                        # local growth
-        #                        max_opt=50,
-        #                        max_opt_dist=150,
-        #
-        #                        blur_bg_amount=0,
-        #                        mask_final=True,
-        #                        mask_blur_range=100,
-        #                        mask_bright=2,
-        #                        comp_blur=1,
-        #                        debug=False)
-
     elif resize_mode == 5:  # fill promportionate
-        res = img_p.fill_content_proportionate(img = im, width = width, height = height)
+        res = img_p.fill_content_proportionate(img=im, width=width, height=height)
 
     elif resize_mode == 6:  # fill frame
-        res = img_p.fill_frame_promportionate(img = im, width = width, height = height)
+        res = img_p.fill_frame_promportionate(img=im, width=width, height=height)
 
     elif resize_mode == 7:  # Crop content
-        res = img_p.crop_content(img = im)
+        res = img_p.crop_content(img=im)
 
     else:
         raise RuntimeError('unknown resize mode', resize_mode)
@@ -320,36 +287,63 @@ def resize_image(resize_mode, im, width, height, resize_settings = None, debug =
 
     return res
 
+
 def crop_btn_procedure(resize_mode, img2img_image_editor, img2img_image_mask, img2img_image_editor_mode, width, height,
-                       resize_settings = None):
+                       resize_settings=None):
     """
     resize wrapper for button
     ====================================================================================================================
     """
     im = None
     if img2img_image_editor_mode is not None and img2img_image_editor_mode == 'Mask':
-        im = img2img_image_mask['image']
+        im = img2img_image_mask['image'] if img2img_image_mask and "image" in img2img_image_mask else None
     elif img2img_image_editor_mode is not None and img2img_image_editor_mode == 'Crop':
         im = img2img_image_editor
-    pil_im = resize_image(resize_mode = resize_mode, im = im, width = width, height = height,
-                          resize_settings = resize_settings) if im is not None else None
+        
+    pil_im = None
+    if im is not None:
+        # do sequence
+        get_text = resize_settings['resize_sequence']
+        do_seq = resize_settings['use_resize_sequence']
+        get_text = get_text.replace(' ', '')
+        preset_list = get_text.split(';')
+        pil_im = im
+        if do_seq and preset_list and pil_im:
+            for i in preset_list:
+                if i == 'Default':
+                    raise RuntimeError('use unique custom saved presets, not defaults: ', i)
+                data = img_p.load_preset(preset=i)
+                if data is None:
+                    raise RuntimeError('cant find data for preset: ', i, data)
+                pil_im = resize_image(resize_mode=data['resize_mode'], im=pil_im, width=data['width'],
+                                      height=data['height'],
+                                      resize_settings=data)
+        # do single
+        else:
+            pil_im = resize_image(resize_mode=resize_mode, im=im, width=width, height=height,
+                              resize_settings=resize_settings)
     if img2img_image_editor_mode == 'Mask':
-        return gr.update(visible = False, interactive = False), gr.update(value = pil_im, visible = True), gr.update(selected='img2img_tab')
+        return gr.update(visible=False, interactive=False), gr.update(value=pil_im, visible=True), gr.update(
+            selected='img2img_tab')
     if img2img_image_editor_mode == 'Crop':
-        return gr.update(value = pil_im, visible = True, interactive = False), gr.update(visible = False), gr.update(selected='img2img_tab')
+        return gr.update(value=pil_im, visible=True, interactive=False), gr.update(visible=False), gr.update(
+            selected='img2img_tab')
+
 
 def update_dimensions_info(width, height):
     pixel_count_formated = "{:,.0f}".format(width * height)
     return f"Aspect ratio: {round(width / height, 5)}\nTotal pixel count: {pixel_count_formated}"
 
-def get_png_nfo( image: Image ):
+
+def get_png_nfo(image: Image):
     info_text = ""
     visible = bool(image and any(image.info))
     if visible:
-        for key,value in image.info.items():
+        for key, value in image.info.items():
             info_text += f"{key}: {value}\n"
         info_text = info_text.rstrip('\n')
     return gr.Textbox.update(value=info_text, visible=visible)
+
 
 def load_settings(*values):
     new_settings, key_names, checkboxgroup_info = values[-3:]
@@ -371,7 +365,8 @@ def load_settings(*values):
             new_settings = new_settings["txt2img"]
         target = new_settings.pop("target", "txt2img")
         if target != "txt2img":
-            print(f"Warning: applying settings to txt2img even though {target} is specified as target.", file=sys.stderr)
+            print(f"Warning: applying settings to txt2img even though {target} is specified as target.",
+                  file=sys.stderr)
 
         skipped_settings = {}
         for key in new_settings.keys():

@@ -769,6 +769,16 @@ def load_preset(preset):
     with open(fp, 'rb') as handle:
         return pickle.load(handle)
 
+def list_presets():
+    """
+    load preset
+    ====================================================================================================================
+    """
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    path = dir_path + r"/resize_presets"
+    presets = [x[:-4] for x in os.listdir(path) if x.endswith(".pkl")]
+    return presets
+
 def get_user_name():
     """
     load preset
@@ -853,6 +863,9 @@ def get_default_presets(preset_name, debug = True):
 
     if debug:
         print ('loading default preset',preset_name,  preset_dict)
+
+    preset_dict['resize_sequence'] = ''
+    preset_dict['use_resize_sequence'] = False
     return preset_dict
 
 

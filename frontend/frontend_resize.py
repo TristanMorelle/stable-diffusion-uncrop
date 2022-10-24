@@ -33,6 +33,7 @@ class Resize_Tab():
         self.shrink_faded_edges_nr = None
         self.pre_fill_square = None
         self.resize_sequence_text = None
+        self.use_resize_sequence_check = None
         self.resize_preset_dropdown = None
         self.pre_fill_picker = None
 
@@ -67,8 +68,12 @@ class Resize_Tab():
                                                           img2img_defaults['resize_mode']], visible=True)
 
                     self.resize_preset_dropdown = gr.Dropdown(label="Resize Preset",
-                                                              choices=['Default'],
+                                                              choices=self.get_presets(),
                                                               value="Default", visible=True)
+
+                self.use_resize_sequence_check = gr.Checkbox(value=False,
+                                                             interactive=True,
+                                                             label='Resize using Sequence')
 
                 self.resize_sequence_text = gr.Textbox(label="Resize Preset sequence (preset1;preset2;preset1)",
                                                        value="", visible=True)
@@ -109,9 +114,9 @@ class Resize_Tab():
                             self.bg_bg_color_dropdown = gr.Dropdown(label='BG color',
                                                                     value='auto_edge',
                                                                     choices=['None',
-                                                                              'auto_edge',
-                                                                              'auto',
-                                                                              'picker'],
+                                                                             'auto_edge',
+                                                                             'auto',
+                                                                             'picker'],
                                                                     show_label=True,
                                                                     interactive=True)
 
@@ -214,12 +219,12 @@ class Resize_Tab():
                 return self.img2img_resize
 
     def gather_vars(self,
-                        img2img_image_editor,
-                        img2img_image_mask,
-                        img2img_image_editor_mode,
-                        img2img_width,
-                        img2img_height,
-                        tabs):
+                    img2img_image_editor,
+                    img2img_image_mask,
+                    img2img_image_editor_mode,
+                    img2img_width,
+                    img2img_height,
+                    tabs):
         """
         set input and output signals on resize procedures
         ================================================================================================================
@@ -256,7 +261,8 @@ class Resize_Tab():
                                           [self.resize_preset_dropdown])
 
         # load resize when dropdown toggled
-        self.resize_preset_dropdown.change(self.load_resize_preset_procedure, [ self.resize_preset_dropdown, self.img2img_resize],
+        self.resize_preset_dropdown.change(self.load_resize_preset_procedure,
+                                           [self.resize_preset_dropdown, self.img2img_resize],
                                            self.get_resize_ui_elements())
 
         # change resize mode will change the ui settings
@@ -264,17 +270,17 @@ class Resize_Tab():
                                    self.get_resize_ui_elements())
 
         # toggle color pickers when dropdown is 'picker'
-        func_a = lambda x: self.check_picker (value = x, dropdown = self.pre_fill_picker)
+        func_a = lambda x: self.check_picker(value=x, dropdown=self.pre_fill_picker)
         self.pre_fill_square.change(func_a, [self.pre_fill_square],
                                     [self.pre_fill_picker])
 
-        func_b = lambda x: self.check_picker (value = x, dropdown = self.bg_picker)
+        func_b = lambda x: self.check_picker(value=x, dropdown=self.bg_picker)
         self.bg_bg_color_dropdown.change(func_b, [self.bg_bg_color_dropdown],
                                          [self.bg_picker])
 
-    def init_ui(self, debug = True):
+    def init_ui(self, debug=True):
         """
-        fix ui to accomodate the default settings and install a auto updater from online to offline
+        fix ui to accommodate the default settings and install a auto updater from online to offline
         ================================================================================================================
         """
         # fix init
@@ -284,11 +290,11 @@ class Resize_Tab():
         self.get_init_configs()
         if debug:
             for i in self.online_settings_dict:
-                print (i.label)
+                print(i.label)
         self.install_value_updater()
         self.init_visibility()
 
-    def check_picker(self, value, dropdown = None):
+    def check_picker(self, value, dropdown=None):
         """
         hide pickers when 'picker' is not selected string
         ================================================================================================================
@@ -297,7 +303,7 @@ class Resize_Tab():
             raise RuntimeError('no dropdown ui given, ', dropdown)
 
         if dropdown not in self.online_pickers_settings_dict:
-            raise RuntimeError ('dropdown not found in dict', dropdown, self.online_pickers_settings_dict.keys())
+            raise RuntimeError('dropdown not found in dict', dropdown, self.online_pickers_settings_dict.keys())
 
         if value == 'picker':
             self.online_pickers_settings_dict[dropdown]['visible'] = True
@@ -319,6 +325,11 @@ class Resize_Tab():
         ================================================================================================================
         """
         # create dict with ui mapping to params
+
+        # presets
+        self.param_ui_dict['resize_sequence'] = self.resize_sequence_text
+        self.param_ui_dict['use_resize_sequence'] = self.use_resize_sequence_check
+
         # repeat edges
         self.param_ui_dict['resize_mode'] = self.img2img_resize
         self.param_ui_dict['pre_fill_square'] = self.pre_fill_square
@@ -361,8 +372,6 @@ class Resize_Tab():
         if not resize_mode:
             resize_mode = self.online_settings_dict[self.img2img_resize]['value']
 
-        print (r' A get_default_values ',  self.online_settings_dict[self.img2img_resize]['value'])
-        print(r' B get_default_values ', resize_mode)
         defaults = uifn.img_p.get_default_presets(preset_name=resize_mode)
         defaults['resize_mode'] = resize_mode
         return defaults
@@ -406,14 +415,12 @@ class Resize_Tab():
         ================================================================================================================
         """
         # convert index to string
-        #TODO: fix race condition, think i solved it
         if func == self.img2img_resize and type(x) in (int, float):
-            print ( r' C img2img_resize ', x)
-            print (r' D self.img2img_resize.choices[x]', self.img2img_resize.choices, x)
             x = self.img2img_resize.choices[x]
 
         self.online_settings_dict[func]['value'] = x
-        # upcate offline ui with online value
+
+        # update offline ui with online value
         return setattr(func, 'value', x)
 
     def set_picker_value(self, func, x):
@@ -441,6 +448,9 @@ class Resize_Tab():
     def install_value_updater(self):
         """
         function to install 'self updater' on ui elements
+        update: initially thought to use the offline gr functions by keeping the value up to date using "change",
+        but now switched to the 'online dict' for saving purposes ...
+        TODO: remove self value updater and only use online dict?
         ================================================================================================================
         """
         params_ui = self.get_map_resize_params_to_ui()
@@ -468,7 +478,6 @@ class Resize_Tab():
             value = self.online_settings_dict[ui]['value']
 
             if p == "resize_mode" and type(value) in (int, float):
-                print ( "resize_mode", value, self.img2img_resize.choices)
                 value = self.img2img_resize.choices[value]
 
             settings_dict[p] = value
@@ -484,7 +493,7 @@ class Resize_Tab():
 
         return settings_dict
 
-    def set_resize_settings(self, settings_dict, debug=True):
+    def set_resize_settings(self, settings_dict, debug=False):
         """
         get resize settings from dict and set to offline ui
         ================================================================================================================
@@ -530,7 +539,7 @@ class Resize_Tab():
 
     def exceptions_to_set(self):
         """
-        should not be affected by setters
+        should not be affected by ui setters
         ================================================================================================================
         """
         return ['width', 'height']
@@ -561,7 +570,6 @@ class Resize_Tab():
 
         return return_dict
 
-
     def show_hide_picker_ui(self, settings_dict):
         """
         get a dict with visibiliy settings based on the provided settings dict for the pickers
@@ -573,8 +581,8 @@ class Resize_Tab():
         # show/hide pickers
         return_dict = dict()
         for p, ui in ui_picker_dict.items():
-            if p in settings_dict and settings_dict [p] == 'picker':
-                    return_dict[ui_picker_dict[p]] = True
+            if p in settings_dict and settings_dict[p] == 'picker':
+                return_dict[ui_picker_dict[p]] = True
             else:
                 return_dict[ui_picker_dict[p]] = False
 
@@ -608,17 +616,15 @@ class Resize_Tab():
         preset_name = preset_name.replace(' ', '_')
         get_settings_dict = self.get_resize_settings()
         uifn.img_p.save_preset(preset=preset_name, data=get_settings_dict)
-        choices = list(self.resize_preset_dropdown.choices)
-        if preset_name not in choices:
-            choices.append(preset_name)
-        self.resize_preset_dropdown.choices = choices
+        choices = self.get_presets()
         return gr.update(choices=choices, value=preset_name)
 
-    def load_resize_preset_procedure(self,  preset_name, resize_mode):
+    def load_resize_preset_procedure(self, preset_name, resize_mode):
         """
-        seve resize settings dict to offline ui and return update list
+        load resize settings dict and set to ui
         ================================================================================================================
         """
+        # load preset pickle or get defaults
         if preset_name == 'Default':
             data = self.get_default_values(resize_mode=resize_mode)
         else:
@@ -630,12 +636,25 @@ class Resize_Tab():
         # then update from values
         return self.get_resize_ui_update_list(settings_dict=data)
 
-    def load_resize_mode_procedure(self, resize_mode):
+    def get_presets(self):
         """
-        seve resize settings dict to offline ui and return update list
+        get presets from disk + default
         ================================================================================================================
         """
+        return ['Default'] + uifn.img_p.list_presets()
 
+    def get_preset_choices(self, value):
+        """
+        load presets to ui choices
+        ================================================================================================================
+        """
+        return gr.update(choices=self.get_presets(), value=value)
+
+    def load_resize_mode_procedure(self, resize_mode):
+        """
+        load defaults fore when resize mode is chosen
+        ================================================================================================================
+        """
         data = self.get_default_values(resize_mode=resize_mode)
         if data:
             # first set ui elements with value
@@ -689,7 +708,7 @@ class Resize_Tab():
                 v = self.online_settings_dict[i]['value']
                 update_list.append(gr.update(value=v, visible=vis[i]))
             else:
-                # just update the value
+                # just repeat the value to keep the consistent order of gr updates
                 v = self.online_settings_dict[i]['value']
                 update_list.append(gr.update(value=v))
         return update_list
