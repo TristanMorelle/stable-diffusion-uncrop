@@ -26,7 +26,7 @@ class Resize_Tab():
         self.mask_bright_nr = None
         self.mask_blur_range_nr = None
         self.mask_final_check = None
-        self.bg_bg_colour_dropdown = None
+        self.bg_bg_color_dropdown = None
         self.bg_picker = None
         self.sample_nr = None
         self.fill_border_size = None
@@ -40,7 +40,7 @@ class Resize_Tab():
         self.param_ui_dict = dict()  # dict holding the gradui ui mapped to resize params
         self.picker_dict = dict()  # dict mapping color pickers to params
         self.online_settings_dict = dict()  # dict holding the current online settings (updated by offline)
-        # dict holding the current online colour picker settings (updated by offline)
+        # dict holding the current online color picker settings (updated by offline)
         self.online_pickers_settings_dict = dict()
 
         # other needed ui elements for signals
@@ -84,7 +84,7 @@ class Resize_Tab():
                                                                         'auto',
                                                                         'picker'], interactive=True)
 
-                            self.pre_fill_picker = gr.ColorPicker(label='bg colour', visible=False,
+                            self.pre_fill_picker = gr.ColorPicker(label='bg color', visible=False,
                                                                   show_label=True,
                                                                   interactive=True).style(
                                 border=(0, 0, 0, 0),
@@ -106,16 +106,16 @@ class Resize_Tab():
                                                        interactive=True,
                                                        )
 
-                            self.bg_bg_colour_dropdown = gr.Dropdown(label='BG colour',
-                                                                     value='auto_edge',
-                                                                     choices=['None',
+                            self.bg_bg_color_dropdown = gr.Dropdown(label='BG color',
+                                                                    value='auto_edge',
+                                                                    choices=['None',
                                                                               'auto_edge',
                                                                               'auto',
                                                                               'picker'],
-                                                                     show_label=True,
-                                                                     interactive=True)
+                                                                    show_label=True,
+                                                                    interactive=True)
 
-                            self.bg_picker = gr.ColorPicker(label='bg colour', visible=False,
+                            self.bg_picker = gr.ColorPicker(label='bg color', visible=False,
                                                             show_label=True,
                                                             interactive=True).style(border=(0, 0, 0, 0),
                                                                                     container=True)
@@ -213,7 +213,7 @@ class Resize_Tab():
                 self.resize_img_button = gr.Button("Resize")
                 return self.img2img_resize
 
-    def connect_signals(self,
+    def gather_vars(self,
                         img2img_image_editor,
                         img2img_image_mask,
                         img2img_image_editor_mode,
@@ -232,6 +232,11 @@ class Resize_Tab():
         self.img2img_height = img2img_height
         self.tabs = tabs
 
+    def connect_signals(self):
+        """
+        set input and output signals on resize procedures
+        ================================================================================================================
+        """
         # button pressed will uncrop the image and update the ui
         self.resize_img_button.click(self.crop_btn_procedure,
                                      [self.img2img_resize,
@@ -251,21 +256,23 @@ class Resize_Tab():
                                           [self.resize_preset_dropdown])
 
         # load resize when dropdown toggled
-        self.resize_preset_dropdown.change(self.load_resize_preset_procedure, [self.resize_preset_dropdown],
+        self.resize_preset_dropdown.change(self.load_resize_preset_procedure, [ self.resize_preset_dropdown, self.img2img_resize],
                                            self.get_resize_ui_elements())
 
         # change resize mode will change the ui settings
-        self.img2img_resize.change(self.load_resize_preset_procedure, [self.resize_preset_dropdown],
+        self.img2img_resize.change(self.load_resize_mode_procedure, [self.img2img_resize],
                                    self.get_resize_ui_elements())
 
-        # toggle colour pickers when dropdown is 'picker'
-        self.pre_fill_square.change(self.check_picker, [self.pre_fill_square],
+        # toggle color pickers when dropdown is 'picker'
+        func_a = lambda x: self.check_picker (value = x, dropdown = self.pre_fill_picker)
+        self.pre_fill_square.change(func_a, [self.pre_fill_square],
                                     [self.pre_fill_picker])
 
-        self.bg_bg_colour_dropdown.change(self.check_picker, [self.bg_bg_colour_dropdown],
-                                          [self.bg_picker])
+        func_b = lambda x: self.check_picker (value = x, dropdown = self.bg_picker)
+        self.bg_bg_color_dropdown.change(func_b, [self.bg_bg_color_dropdown],
+                                         [self.bg_picker])
 
-    def init_ui(self):
+    def init_ui(self, debug = True):
         """
         fix ui to accomodate the default settings and install a auto updater from online to offline
         ================================================================================================================
@@ -275,17 +282,24 @@ class Resize_Tab():
         self.map_pickers()
 
         self.get_init_configs()
-        for i in self.online_settings_dict:
-            print (i.label)
+        if debug:
+            for i in self.online_settings_dict:
+                print (i.label)
         self.install_value_updater()
         self.init_visibility()
 
-    def check_picker(self, dropdown):
+    def check_picker(self, value, dropdown = None):
         """
         hide pickers when 'picker' is not selected string
         ================================================================================================================
         """
-        if dropdown == 'picker':
+        if not dropdown:
+            raise RuntimeError('no dropdown ui given, ', dropdown)
+
+        if dropdown not in self.online_pickers_settings_dict:
+            raise RuntimeError ('dropdown not found in dict', dropdown, self.online_pickers_settings_dict.keys())
+
+        if value == 'picker':
             self.online_pickers_settings_dict[dropdown]['visible'] = True
             return gr.update(visible=True)
         else:
@@ -294,7 +308,7 @@ class Resize_Tab():
 
     def get_map_resize_params_to_ui(self):
         """
-        map gr ui to resize func params the first call
+        map gr ui to resize func params the first call, or return existing if already created
         ================================================================================================================
         """
         return self.param_ui_dict if self.param_ui_dict else self.map_resize_params_to_ui()
@@ -313,7 +327,7 @@ class Resize_Tab():
         self.param_ui_dict['shrink_faded_edges'] = self.shrink_faded_edges_nr
         self.param_ui_dict['fill_border_size'] = self.fill_border_size
         self.param_ui_dict['sample'] = self.sample_nr
-        self.param_ui_dict['bg_colour'] = self.bg_bg_colour_dropdown
+        self.param_ui_dict['bg_color'] = self.bg_bg_color_dropdown
         self.param_ui_dict['mask_final'] = self.mask_final_check
         self.param_ui_dict['mask_blur_range'] = self.mask_blur_range_nr
         self.param_ui_dict['mask_bright'] = self.mask_bright_nr
@@ -354,6 +368,10 @@ class Resize_Tab():
         return defaults
 
     def get_map_pickers(self):
+        """
+        map gr pickers ui to resize func params the first call, or return existing if already created
+        ================================================================================================================
+        """
         return self.picker_dict if self.picker_dict else self.map_pickers()
 
     def map_pickers(self):
@@ -388,7 +406,7 @@ class Resize_Tab():
         ================================================================================================================
         """
         # convert index to string
-        #TODO: fix race condition
+        #TODO: fix race condition, think i solved it
         if func == self.img2img_resize and type(x) in (int, float):
             print ( r' C img2img_resize ', x)
             print (r' D self.img2img_resize.choices[x]', self.img2img_resize.choices, x)
@@ -409,7 +427,7 @@ class Resize_Tab():
 
     def get_init_configs(self):
         """
-        get all init configs
+        get all init configs from ui
         ================================================================================================================
         """
         params_ui = self.get_map_resize_params_to_ui()
@@ -419,7 +437,6 @@ class Resize_Tab():
 
         for p, ui in pickers.items():
             self.online_pickers_settings_dict[ui] = ui.get_config()
-        return self.online_pickers_settings_dict
 
     def install_value_updater(self):
         """
@@ -455,9 +472,10 @@ class Resize_Tab():
                 value = self.img2img_resize.choices[value]
 
             settings_dict[p] = value
+
             if p in pickers and value == 'picker':
                 # pass color picker value
-                settings_dict[p] = pickers[p]['value']
+                settings_dict[p] = pickers[p].value
 
         if debug:
             print(50 * '=')
@@ -489,7 +507,7 @@ class Resize_Tab():
             # update pickers and set the value
             value = settings_dict[p]
             if p in pickers and type(value) in (list, tuple):
-                # first set the picker colour
+                # first set the picker color
                 self.online_pickers_settings_dict[ui]['value'] = value
                 # the set drop down to picker
                 value = 'picker'
@@ -502,7 +520,7 @@ class Resize_Tab():
             elif type(value) in (list, tuple) and all([value[0] == i for i in value]):
                 value = value[0]
 
-            # update offline ui
+            # update online ui
             self.online_settings_dict[ui]['value'] = value
 
             if debug:
@@ -519,10 +537,10 @@ class Resize_Tab():
 
     def show_hide_ui(self, settings_dict):
         """
-        get a dict with visibiliy settings based on the settings dict
+        get a dict with visibiliy settings based on the provided settings dict
         ================================================================================================================
         """
-        # reverse mapping
+        # var/ui mapping
         ui_dict = self.get_map_resize_params_to_ui()
 
         # if it's not in the settings dict, hide it, else show
@@ -537,11 +555,33 @@ class Resize_Tab():
             else:
                 return_dict[ui_dict[p]] = False
 
-        # updatee dict with online settings
+        # update dict with online settings
         for ui, v in return_dict.items():
             self.online_settings_dict[ui]['visible'] = v
 
         return return_dict
+
+
+    def show_hide_picker_ui(self, settings_dict):
+        """
+        get a dict with visibiliy settings based on the provided settings dict for the pickers
+        ================================================================================================================
+        """
+        # reverse mapping
+        ui_picker_dict = self.get_map_pickers()
+
+        # show/hide pickers
+        return_dict = dict()
+        for p, ui in ui_picker_dict.items():
+            if p in settings_dict and settings_dict [p] == 'picker':
+                    return_dict[ui_picker_dict[p]] = True
+            else:
+                return_dict[ui_picker_dict[p]] = False
+
+        # update online picker dict with visibility
+        for ui, v in return_dict.items():
+            if ui in self.online_pickers_settings_dict:
+                self.online_pickers_settings_dict[ui]['visible'] = v
 
     def init_visibility(self):
         """
@@ -549,8 +589,12 @@ class Resize_Tab():
         ================================================================================================================
         """
         self.show_hide_ui(settings_dict=self.get_default_values())
-        # ui is not yet created so just set on ui
+        self.show_hide_picker_ui(settings_dict=self.get_default_values())
+        # ui is not yet created so set it on ui for init
         for ui, v_dict in self.online_settings_dict.items():
+            ui.visible = v_dict['visible']
+
+        for ui, v_dict in self.online_pickers_settings_dict.items():
             ui.visible = v_dict['visible']
 
     def save_resize_preset_procedure(self, preset_name):
@@ -558,9 +602,11 @@ class Resize_Tab():
         save resize settings dict as preset to disk
         ================================================================================================================
         """
+        if preset_name == 'Default':
+            return gr.update(value=preset_name)
+
         preset_name = preset_name.replace(' ', '_')
         get_settings_dict = self.get_resize_settings()
-        print ('get_settings_dict',get_settings_dict)
         uifn.img_p.save_preset(preset=preset_name, data=get_settings_dict)
         choices = list(self.resize_preset_dropdown.choices)
         if preset_name not in choices:
@@ -568,18 +614,29 @@ class Resize_Tab():
         self.resize_preset_dropdown.choices = choices
         return gr.update(choices=choices, value=preset_name)
 
-    def load_resize_preset_procedure(self, preset_name='Default', resize_mode=None):
+    def load_resize_preset_procedure(self,  preset_name, resize_mode):
         """
         seve resize settings dict to offline ui and return update list
         ================================================================================================================
         """
         if preset_name == 'Default':
-            if not resize_mode:
-                resize_mode = self.online_settings_dict[self.img2img_resize]['value']
             data = self.get_default_values(resize_mode=resize_mode)
         else:
             data = uifn.img_p.load_preset(preset=preset_name)
 
+        if data:
+            # first set online ui elements with value
+            self.set_resize_settings(settings_dict=data)
+        # then update from values
+        return self.get_resize_ui_update_list(settings_dict=data)
+
+    def load_resize_mode_procedure(self, resize_mode):
+        """
+        seve resize settings dict to offline ui and return update list
+        ================================================================================================================
+        """
+
+        data = self.get_default_values(resize_mode=resize_mode)
         if data:
             # first set ui elements with value
             self.set_resize_settings(settings_dict=data)
@@ -588,7 +645,7 @@ class Resize_Tab():
 
     def get_resize_ui(self):
         """
-        get list of ui elements wirhout pickers
+        get list of ui elements without pickers
         ================================================================================================================
         """
         return list(self.get_map_resize_params_to_ui().values())
@@ -619,17 +676,22 @@ class Resize_Tab():
 
     def get_resize_ui_update_list(self, settings_dict):
         """
-        get list of update dicts to sync ui elements from offline values
+        get value and vis update list to set/update ui
         ================================================================================================================
         """
         # dict with key: ui_vis, value: True/False
+        # get visible ui's
         vis = self.show_hide_ui(settings_dict=settings_dict)
         update_list = []
         for i in self.get_resize_ui_elements():
             if i in vis:
-                update_list.append(gr.update(value=i.value, visible=vis[i]))
+                # update value and vis
+                v = self.online_settings_dict[i]['value']
+                update_list.append(gr.update(value=v, visible=vis[i]))
             else:
-                update_list.append(gr.update(value=i.value))
+                # just update the value
+                v = self.online_settings_dict[i]['value']
+                update_list.append(gr.update(value=v))
         return update_list
 
     def crop_btn_procedure(self, *args, **kwargs):

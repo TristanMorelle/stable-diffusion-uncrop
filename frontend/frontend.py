@@ -375,14 +375,21 @@ def draw_gradio_ui(opt, img2img=lambda x: x, txt2img=lambda x: x, imgproc=lambda
 
                 # Resize tab
                 # ==============================================================================================
-                resize_tab.connect_signals(img2img_image_editor = img2img_image_editor,
+                # get vars and set to class
+                resize_tab.gather_vars(img2img_image_editor = img2img_image_editor,
                                             img2img_image_mask = img2img_image_mask,
                                             img2img_image_editor_mode = img2img_image_editor_mode,
                                             img2img_width = img2img_width,
                                             img2img_height = img2img_height,
                                             tabs = tabs)
 
+                # have auto updater as first caller on change
                 resize_tab.init_ui()
+
+                # add other signals
+                resize_tab.connect_signals()
+
+
 
                 output_txt2img_copy_to_input_btn.click(
                     uifn.copy_img_to_input,

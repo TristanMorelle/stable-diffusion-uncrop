@@ -219,7 +219,7 @@ def resize_image(resize_mode, im, width, height, resize_settings = None, debug =
 
     if debug:
         print ('========= doing resize_mode', resize_mode, width, height, im)
-        img_p.add_margin(img = im, margins = (10,10,10,10), colour='red').show()
+        img_p.add_margin(img = im, margins = (10,10,10,10), color='red').show()
 
     # add size to settings dict
     if resize_settings:
@@ -316,7 +316,7 @@ def resize_image(resize_mode, im, width, height, resize_settings = None, debug =
         raise RuntimeError('unknown resize mode', resize_mode)
 
     if debug:
-        img_p.add_margin(img=res, margins=(10, 10, 10, 10), colour='green').show()
+        img_p.add_margin(img=res, margins=(10, 10, 10, 10), color='green').show()
 
     return res
 

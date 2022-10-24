@@ -23,7 +23,7 @@ def data_as_rows(img):
 def add_random_noise(pixel_value, noise_var = 5):
     """
     ====================================================================================================================
-    manual colour noise manually
+    manual color noise manually
     :param pixel_value: a tuple to add variation to
     :param noise_var:
     :return: modiefied tuple
@@ -33,7 +33,7 @@ def add_random_noise(pixel_value, noise_var = 5):
     return tuple(pixel_value[i] + var[i] if pixel_value[i] + var[i] <= 255 else 255 for i in range(len(pixel_value)))
 
 
-def add_margin(img, margins =(0,0,0,0), colour = None):
+def add_margin(img, margins =(0,0,0,0), color = None):
     """
     extend image with borders
     ====================================================================================================================
@@ -42,7 +42,7 @@ def add_margin(img, margins =(0,0,0,0), colour = None):
     :param right: px amount to add on right
     :param bottom: px amount to add on bottom
     :param left: px amount to add on left
-    :param colour: fill colour
+    :param color: fill color
     :return: pil image
     ====================================================================================================================
     """
@@ -50,7 +50,7 @@ def add_margin(img, margins =(0,0,0,0), colour = None):
     width, height = img.size
     new_width = width + right + left
     new_height = height + top + bottom
-    result = Image.new(img.mode, (new_width, new_height), colour)
+    result = Image.new(img.mode, (new_width, new_height), color)
     result.paste(img, (left, top))
     return result
 
@@ -130,7 +130,7 @@ def get_edge(img):
     return contour
 
 
-def dither (img, opacity = 0.1, color = (0,0,0,0), dark_noise= False):
+def dither (img, opacity = 0.1, color = (0, 0, 0, 0), dark_noise= False):
     """
     ====================================================================================================================
     :param img:
@@ -197,7 +197,7 @@ def make_blurred_mask(img, mask_blur_range, mask_bright, dither_opacity, dither_
     return mask
 
 
-def put_colour_border (img, bg_color = 50, size = (100, 10, 10, 10)):
+def put_color_border (img, bg_color = 50, size = (100, 10, 10, 10)):
     """
     paste border at the edge of the image
     ====================================================================================================================
@@ -236,7 +236,7 @@ def repeat_edges (img,
                   width = None,
                   height =None,
                   sample=1,
-                  bg_colour = None,
+                  bg_color = None,
                   pre_fill_square = None,
                   shrink_faded_edges=0,
                   mask_final=True,
@@ -253,8 +253,8 @@ def repeat_edges (img,
     :param width: result canvas width
     :param height: result canvas height
     :param sample: size of pixels to sample
-    :param bg_colour: color to fill bg with  => colour tuple, None, auto, auto_edge
-    :param pre_fill_square: make image content square before repeating edges, filling => colour tuple, auto, auto_edge, None
+    :param bg_color: color to fill bg with  => color tuple, None, auto, auto_edge
+    :param pre_fill_square: make image content square before repeating edges, filling => color tuple, auto, auto_edge, None
     :param shrink_faded_edges: helps to get rid of faded borders in images alpha's.
     :param mask_final: create mask based on the content and fade repeated edges with this mask
     :param mask_blur_range: mask blur amount
@@ -380,20 +380,20 @@ def repeat_edges (img,
         img.paste(b_r, box = (img_w - r_size, img_h - b_size)) #botright
 
     # if fill bg color
-    if bg_colour != None:
-        if bg_colour == 'auto':
-            bg_colour = get_bg_color(og_image, use_edge = False)
+    if bg_color != None:
+        if bg_color == 'auto':
+            bg_color = get_bg_color(og_image, use_edge = False)
 
-        elif bg_colour == 'auto_edge':
-            bg_colour = get_bg_color(og_image, use_edge=True)
+        elif bg_color == 'auto_edge':
+            bg_color = get_bg_color(og_image, use_edge=True)
 
-        elif bg_colour != None:
-            bg_colour = bg_colour
+        elif bg_color != None:
+            bg_color = bg_color
 
         else:
-            bg_colour = (255, 255, 255, 0)
+            bg_color = (255, 255, 255, 0)
 
-        background = Image.new('RGBA', img.size, bg_colour)
+        background = Image.new('RGBA', img.size, bg_color)
         background.paste(img, (0,0), img)
         img = background
 
@@ -403,10 +403,10 @@ def repeat_edges (img,
                                  mask_blur_range=mask_blur_range,
                                  mask_bright=mask_bright,
                                  dither_opacity=mask_dither_opacity,
-                                 dither_color=bg_colour)
+                                 dither_color=bg_color)
         if debug:
             mask.show()
-        fill = Image.new('RGBA', (width, height), bg_colour)
+        fill = Image.new('RGBA', (width, height), bg_color)
         img = Image.composite(img, fill, mask)
 
     return img
@@ -417,7 +417,7 @@ def get_bg_color(img, use_edge = True):
     ====================================================================================================================
     :param img: source image with alpha
     :param use_edge: use the image edge to calculate most occuring color
-    get the most occuring bg colour out of the edges, or general image
+    get the most occuring bg color out of the edges, or general image
     ====================================================================================================================
     """
     # contour = img.filter(ImageFilter.ModeFilter(size=15))
@@ -546,7 +546,7 @@ def fill_frame_promportionate(img, width, height):
 def scatter_bg(img,
                width,
                height,
-               bg_colour ='auto_edge',
+               bg_color ='auto_edge',
                border_thickness = (3, 3, 3, 3),
                auto_border_size = False,
                auto_border_ratio = 10,
@@ -567,7 +567,7 @@ def scatter_bg(img,
     :param img: source image with alpha
     :param width: output canvas width
     :param height: output canvas height
-    :param bg_colour: tuple to set the bg color, 'auto_edge' for color in edge, 'auto' will detect using the whole image
+    :param bg_color: tuple to set the bg color, 'auto_edge' for color in edge, 'auto' will detect using the whole image
     :param border_thickness: tuple with sizes for border left, top, right, bottem, to be used with scatter growth
     :param auto_border_size: use 'add_border' as min border when automatically set the border using the auto_border_ratio
     :param auto_border_ratio: devider for auto_border_size, 1 fully fills the border to the image crop
@@ -608,20 +608,20 @@ def scatter_bg(img,
     og_img = img.copy() # copy original
 
 
-    if bg_colour == 'auto':
-        bg_colour = get_bg_color(img, use_edge = False)
+    if bg_color == 'auto':
+        bg_color = get_bg_color(img, use_edge = False)
 
-    elif bg_colour == 'auto_edge':
-        bg_colour = get_bg_color(img, use_edge=True)
+    elif bg_color == 'auto_edge':
+        bg_color = get_bg_color(img, use_edge=True)
 
-    elif bg_colour != None:
-        bg_colour = bg_colour
+    elif bg_color != None:
+        bg_color = bg_color
 
     else:
-        bg_colour = (255, 255, 255, 0)
+        bg_color = (255, 255, 255, 0)
 
     if debug:
-        Image.new(mode="RGBA", size=(200, 200), color=bg_colour).show()
+        Image.new(mode="RGBA", size=(200, 200), color=bg_color).show()
 
     # calc the auto border size based on content
     l, t, r, b = img.getbbox()
@@ -641,9 +641,9 @@ def scatter_bg(img,
     else:
         border_size = border_thickness
 
-    if bg_colour:
+    if bg_color:
         # add border
-        img = put_colour_border(img=img, bg_color=bg_colour, size=border_size)
+        img = put_color_border(img=img, bg_color=bg_color, size=border_size)
         if debug:
             img.show()
 
@@ -678,7 +678,7 @@ def scatter_bg(img,
                                 mask_blur_range= mask_blur_range,
                                 mask_bright=mask_bright,
                                 dither_opacity = 0.1,
-                                dither_color=bg_colour)
+                                dither_color=bg_color)
     if debug:
         og_mask.show()
 
@@ -689,7 +689,7 @@ def scatter_bg(img,
     out_img = out_img.filter(filter=ImageFilter.GaussianBlur(comp_blur))
 
     # add noise
-    dither(img = out_img, opacity=0.1, color=bg_colour)
+    dither(img = out_img, opacity=0.1, color=bg_color)
 
     # comp with original image
     # chook mask a bit
@@ -707,7 +707,7 @@ def scatter_bg(img,
 
     if fill_bg :
         out_mask = og_mask if mask_final else out_img
-        fill = Image.new('RGBA', (width, height), bg_colour)
+        fill = Image.new('RGBA', (width, height), bg_color)
         out_img = Image.composite(out_img, fill, out_img)
         out_img = Image.composite(out_img, fill, out_mask)
     return out_img
@@ -816,12 +816,13 @@ def get_default_presets(preset_name, debug = True):
     elif preset_name == 'Scatter Fill' or preset_name == 4:
         preset_dict['width'] =None
         preset_dict['height'] = None
-        preset_dict['bg_colour'] = "auto_edge"
+        preset_dict['bg_color'] = "auto_edge"
         preset_dict['border_thickness'] = (0, 0, 0, 0)  # natural spread
         preset_dict['auto_border_size'] = False
         preset_dict['auto_border_ratio'] = 20
         preset_dict['comp_img_edge'] = True
         preset_dict['fill_bg'] = True
+
         # global scatter
         preset_dict['max_init_it'] = 50
         preset_dict['max_init_dist'] = 2000
@@ -829,6 +830,7 @@ def get_default_presets(preset_name, debug = True):
         preset_dict['max_opt'] = 50
         preset_dict['max_opt_dist'] = 150
         # finalize
+        preset_dict['blur_bg_amount'] = 0
         preset_dict['mask_blur_range'] = 0
         preset_dict['mask_final'] = True
         preset_dict['mask_blur_range'] = 100
@@ -869,7 +871,7 @@ if __name__ == '__main__':
     # simple add borders
     add_borders = False
     if add_borders:
-        result = add_margin(img = img, margins = (10,20,30,40), colour='black')
+        result = add_margin(img = img, margins = (10,20,30,40), color='black')
         result.show()
 
     # repeat edges
@@ -880,7 +882,7 @@ if __name__ == '__main__':
                               sample=1,
                               width=w + 500,
                               height=h + 500,
-                              bg_colour='auto_edge',
+                              bg_color='auto_edge',
                               pre_fill_square='auto_edge',
                               shrink_faded_edges=0,
                               mask_final=True,
@@ -894,14 +896,14 @@ if __name__ == '__main__':
     # scatter
     scatter = False
     if scatter:
-        # if multiple distances, sample bg colour before resizing
+        # if multiple distances, sample bg color before resizing
         bgc = get_bg_color(img=img, use_edge=True)
         for i in range(1,3):
             img = img.resize((w//i, h//i))
             result = scatter_bg(img = img,
                                 width=w + 500,
                                 height=h + 500,
-                                bg_colour=bgc,
+                                bg_color=bgc,
                                 border_thickness= (0, 0, 0, 0),  # natural spread
                                 auto_border_size= False,
                                 auto_border_ratio= 20,
