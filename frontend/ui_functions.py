@@ -210,6 +210,7 @@ help_text = """
 def filter_settings_dict(resize_settings, func):
     """
     filter *args for matching settings of given function
+    ====================================================================================================================
     """
     resize_settings_filtered = dict()
     attrs = func.__code__.co_varnames[:func.__code__.co_argcount]
@@ -225,6 +226,7 @@ def filter_settings_dict(resize_settings, func):
 def resize_image(resize_mode, im, width, height, resize_settings=None, debug=False):
     """
     unpack settings and call resize
+    ====================================================================================================================
     """
     if im is None or width <= 0 or height <= 0:
         return
@@ -270,11 +272,11 @@ def resize_image(resize_mode, im, width, height, resize_settings=None, debug=Fal
         resize_settings = filter_settings_dict(resize_settings=resize_settings, func=img_p.scatter_bg)
         res = img_p.scatter_bg(**resize_settings)
 
-    elif resize_mode == 5:  # fill promportionate
+    elif resize_mode == 5:  # fill proportionate
         res = img_p.fill_content_proportionate(img=im, width=width, height=height)
 
     elif resize_mode == 6:  # fill frame
-        res = img_p.fill_frame_promportionate(img=im, width=width, height=height)
+        res = img_p.fill_frame_proportionate(img=im, width=width, height=height)
 
     elif resize_mode == 7:  # Crop content
         res = img_p.crop_content(img=im)
@@ -299,7 +301,7 @@ def crop_btn_procedure(resize_mode, img2img_image_editor, img2img_image_mask, im
         im = img2img_image_mask['image'] if img2img_image_mask and "image" in img2img_image_mask else None
     elif img2img_image_editor_mode is not None and img2img_image_editor_mode == 'Crop':
         im = img2img_image_editor
-        
+
     pil_im = None
     if im is not None:
         # do sequence
