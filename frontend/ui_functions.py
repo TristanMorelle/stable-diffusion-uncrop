@@ -251,6 +251,10 @@ def resize_image(resize_mode, im, width, height, resize_settings=None, debug=Fal
         resize_settings["width"] = None
         resize_settings["height"] = None
         resize_settings["img"] = im
+    
+    # cant do resize mode without settings
+    if not resize_settings and resize_mode in [2,3,4]:
+        resize_mode = 5
 
     if resize_mode == 0:  # dont resize
         res = im

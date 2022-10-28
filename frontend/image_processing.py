@@ -770,8 +770,11 @@ def list_presets():
     """
     dir_path = os.path.dirname(os.path.realpath(__file__))
     path = dir_path + r"/resize_presets"
-    presets = [x[:-4] for x in os.listdir(path) if x.endswith(".pkl")]
-    return presets
+    if os.path.exists(path):
+        presets = [x[:-4] for x in os.listdir(path) if x.endswith(".pkl")]
+        return presets
+    else:
+        return []
 
 
 def get_user_name():
