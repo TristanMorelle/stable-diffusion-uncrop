@@ -187,7 +187,7 @@ def make_blurred_mask(img, mask_blur_range, mask_bright, dither_opacity, dither_
     # mask = ImageEnhance.Contrast(mask).enhance(2.5)
 
     # og_mask = ImageOps.invert(og_mask)
-    if dither_color != None:
+    if dither_color not in (None, "none", "None"):
         mask_dither = dither(img=mask, opacity=dither_opacity, color=dither_color)
         # mask dither to prevent lightening effect
         mask.paste(mask_dither, mask=mask)
@@ -285,7 +285,7 @@ def repeat_edges(img,
     if shrink_faded_edges or pre_fill_square != None:
         # get content
         content = img.crop((s_l, s_t, s_r, s_b))
-        if pre_fill_square != None:  # for speed
+        if pre_fill_square not in (None, "none", "None"):  # for speed
             if pre_fill_square == 'auto':
                 pre_fill_square = get_bg_color(og_image, use_edge=False)
 
@@ -378,7 +378,7 @@ def repeat_edges(img,
         img.paste(b_r, box=(img_w - r_size, img_h - b_size))  # botright
 
     # if fill bg color
-    if bg_color != None:
+    if bg_color not in (None, "none", "None"):
         if bg_color == 'auto':
             bg_color = get_bg_color(og_image, use_edge=False)
 
@@ -394,6 +394,8 @@ def repeat_edges(img,
         background = Image.new('RGBA', img.size, bg_color)
         background.paste(img, (0, 0), img)
         img = background
+    else:
+        bg_color = (255, 255, 255, 0)
 
     # if mask result
     if mask_final and mask_dither_opacity:
