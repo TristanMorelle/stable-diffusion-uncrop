@@ -64,7 +64,6 @@ class Resize_Tab():
         """
         with gr.Tabs():
             with gr.TabItem("Resize options"):
-
                 self.use_resize_sequence_check = gr.Checkbox(value=False,
                                                              interactive=True,
                                                              label='Resize using Sequence')
@@ -82,8 +81,6 @@ class Resize_Tab():
                     self.resize_preset_dropdown = gr.Dropdown(label="Resize Preset",
                                                               choices=self.get_presets(),
                                                               value="Default", visible=True)
-
-
 
                 with gr.Accordion("Advanced resize options", open=False):
                     with gr.Row():
@@ -213,9 +210,9 @@ class Resize_Tab():
                                                           label='blur result edge on bg')
 
                             self.zoom_scaler_nr = gr.Number(value=0.1,
-                                                          interactive=True,
-                                                          precision=2,
-                                                          label='zoom scaler')
+                                                            interactive=True,
+                                                            precision=2,
+                                                            label='zoom scaler')
 
                             with gr.Row():
                                 with gr.Column():
@@ -279,8 +276,7 @@ class Resize_Tab():
 
         # load resize when dropdown toggled
         self.use_resize_sequence_check.change(self.get_preset_choices,
-                                           [self.resize_preset_dropdown],[self.resize_preset_dropdown])
-
+                                              [self.resize_preset_dropdown], [self.resize_preset_dropdown])
 
         # change resize mode will change the ui settings
         self.img2img_resize.change(self.load_resize_mode_procedure, [self.img2img_resize],
@@ -521,7 +517,7 @@ class Resize_Tab():
         """
         params_ui = self.get_map_resize_params_to_ui()
         pickers = self.get_map_pickers()
-        for p, ui in params_ui.items(): #p for params
+        for p, ui in params_ui.items():  # p for params
             if p not in settings_dict:
                 # not setting the ui as it is not part of this preset
                 if debug:
