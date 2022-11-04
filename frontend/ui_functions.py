@@ -285,6 +285,9 @@ def resize_image(resize_mode, im, width, height, resize_settings=None, debug=Fal
     elif resize_mode == 7:  # Crop content
         res = img_p.crop_content(img=im)
 
+    elif resize_mode == 8:  # Crop content
+        resize_settings = filter_settings_dict(resize_settings=resize_settings, func=img_p.zoom)
+        res = img_p.zoom(**resize_settings)
     else:
         raise RuntimeError('unknown resize mode', resize_mode)
 

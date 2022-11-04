@@ -505,6 +505,30 @@ def crop_content(img, invert=True):
         content = content.crop((l, t, r, b))
     return content
 
+def zoom(img, zoom_scaler = .1):
+    """
+    zoom in or out percentually by cropping the image
+    ====================================================================================================================
+    :param img: source image with alpha
+    :param percent: scaler percentage
+    ====================================================================================================================
+    """
+    img_w, img_h = img.size
+    delta_w = (img_w * zoom_scaler)//2.
+    delta_h = (img_h * zoom_scaler)//2.
+
+    # black
+    l, t, r, b = delta_w, delta_h, img_w - delta_w, img_h - delta_h
+    img = img.crop((l, t, r, b))
+    img = img.resize((img_w, img_h))
+
+    # background = Image.new('RGBA', (img_w, img_h), bg_color)
+    # bg_w, bg_h = background.size
+    # img_w, img_h = img.size
+    # offset = ((bg_w - img_w) // 2, (bg_h - img_h) // 2)
+    # background.paste(img, offset, img)
+
+    return img
 
 def fill_frame_proportionate(img, width, height):
     """
@@ -719,7 +743,8 @@ def get_resize_funtions():
             "Scatter Fill",
             "Fill Content Proportionally",
             "Fill Frame Proportionally",
-            "Crop Content"]
+            "Crop Content",
+            "Zoom"]
 
 
 def create_folder(path):
@@ -859,6 +884,10 @@ def get_default_presets(preset_name, debug=False):
 
     elif preset_name == 'Crop Content' or preset_name == 7:
         preset_dict['invert'] = True
+        preset_dict['debug'] = False
+
+    elif preset_name == 'Zoom' or preset_name == 8:
+        preset_dict['zoom_scaler'] = 0.1
         preset_dict['debug'] = False
 
     else:

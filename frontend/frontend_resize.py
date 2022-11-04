@@ -39,6 +39,7 @@ class Resize_Tab():
         self.use_resize_sequence_check = None
         self.resize_preset_dropdown = None
         self.pre_fill_picker = None
+        self.zoom_scaler_nr = None
 
         # dicts
         self.param_ui_dict = dict()  # dict holding the gradui ui mapped to resize params
@@ -211,6 +212,11 @@ class Resize_Tab():
                                                           precision=0,
                                                           label='blur result edge on bg')
 
+                            self.zoom_scaler_nr = gr.Number(value=0.1,
+                                                          interactive=True,
+                                                          precision=2,
+                                                          label='zoom scaler')
+
                             with gr.Row():
                                 with gr.Column():
                                     self.debug_check = gr.Checkbox(value=False,
@@ -370,6 +376,9 @@ class Resize_Tab():
         self.param_ui_dict['blur_bg_amount'] = self.blur_bg_amount_nr
         self.param_ui_dict['mask_blur_range'] = self.mask_blur_range_nr
         self.param_ui_dict['comp_blur'] = self.comp_blur_nr
+        # zoom
+        self.param_ui_dict['zoom_scaler'] = self.zoom_scaler_nr
+
         # debug
         self.param_ui_dict['debug'] = self.debug_check
 

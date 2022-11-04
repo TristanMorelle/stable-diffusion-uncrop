@@ -80,6 +80,8 @@ Check the [Contribution Guide](CONTRIBUTING.md)
 
 * Loopback for Image2Image: A checkbox for img2img allowing to automatically feed output image as input for the next batch. Equivalent to saving output image, and replacing input image with it.
 
+* image resizing and pre-processing: crop to content, scatter fill bg, fill bg, repeat edges, fill frame/content proportionatly, stretch, zoom in / out, sequence processing, preset saving and recalling.
+
 # Stable Diffusion Web UI
 
 A fully-integrated and easy way to work with Stable Diffusion right from a browser window.
