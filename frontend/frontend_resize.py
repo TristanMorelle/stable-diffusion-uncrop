@@ -521,7 +521,7 @@ class Resize_Tab():
         """
         params_ui = self.get_map_resize_params_to_ui()
         pickers = self.get_map_pickers()
-        for p, ui in params_ui.items():
+        for p, ui in params_ui.items(): #p for params
             if p not in settings_dict:
                 # not setting the ui as it is not part of this preset
                 if debug:
@@ -611,6 +611,7 @@ class Resize_Tab():
         for ui, v in return_dict.items():
             if ui in self.online_pickers_settings_dict:
                 self.online_pickers_settings_dict[ui]['visible'] = v
+        return return_dict
 
     def init_visibility(self):
         """
@@ -695,7 +696,7 @@ class Resize_Tab():
         get list of only ui pickers associated with other ui settings
         ================================================================================================================
         """
-        return list(self.get_map_resize_params_to_ui().values())
+        return list(self.get_map_pickers().values())
 
     def get_preset_ui(self):
         """
@@ -722,16 +723,32 @@ class Resize_Tab():
         # dict with key: ui_vis, value: True/False
         # get visible ui's
         vis = self.show_hide_ui(settings_dict=settings_dict)
+        picker_vis = self.show_hide_picker_ui(settings_dict=settings_dict)
+
         update_list = []
         for i in self.get_resize_ui_elements():
-            if i in vis:
+            # normal ui
+            if i in vis and i in self.online_settings_dict:
                 # update value and vis
                 v = self.online_settings_dict[i]['value']
                 update_list.append(gr.update(value=v, visible=vis[i]))
-            else:
+            elif i in self.online_settings_dict:
                 # just repeat the value to keep the consistent order of gr updates
                 v = self.online_settings_dict[i]['value']
                 update_list.append(gr.update(value=v))
+
+            # pickers
+            elif i in picker_vis and i in self.online_pickers_settings_dict:
+                # update value and vis
+                v = self.online_pickers_settings_dict[i]['value']
+                update_list.append(gr.update(value=v, visible=picker_vis[i]))
+            elif i in self.online_pickers_settings_dict:
+                # just repeat the value to keep the consistent order of gr updates
+                v = self.online_pickers_settings_dict[i]['value']
+                update_list.append(gr.update(value=v))
+            else:
+                raise RuntimeError('ui not found in ui or picker dicts', i)
+
         return update_list
 
     def crop_btn_procedure(self, *args, **kwargs):
