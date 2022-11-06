@@ -33,6 +33,8 @@ Check the [Contribution Guide](CONTRIBUTING.md)
 
 * No more manually typing parameters, now all you have to do is write your prompt and adjust sliders
 
+* image resizing and pre-processing: crop to content, scatter fill bg, fill bg, repeat edges, fill frame/content proportionatly, stretch, zoom in / out, sequence processing, preset saving and recalling.
+
 * Built-in image enhancers and upscalers, including GFPGAN and realESRGAN
 
 * Run additional upscaling models on CPU to save VRAM
@@ -80,7 +82,6 @@ Check the [Contribution Guide](CONTRIBUTING.md)
 
 * Loopback for Image2Image: A checkbox for img2img allowing to automatically feed output image as input for the next batch. Equivalent to saving output image, and replacing input image with it.
 
-* image resizing and pre-processing: crop to content, scatter fill bg, fill bg, repeat edges, fill frame/content proportionatly, stretch, zoom in / out, sequence processing, preset saving and recalling.
 
 # Stable Diffusion Web UI
 
@@ -118,6 +119,24 @@ Please see the [Streamlit Documentation](docs/4.streamlit-interface.md) to learn
 - *Note, the Gradio interface is no longer being actively developed and is only receiving bug fixes.*
 
 Please see the [Gradio Documentation](docs/5.gradio-interface.md) to learn more.
+
+
+## Image resizing and processing
+
+Fit or fill your input image into the desired output format by cropping or uncropping your image.
+This allows for composition adjustments and generative backgrounds to help the diffusion process with more pixel data.
+
+![](images/image processing/crop_to_content.png)
+![](images/image processing/fill_background.png)
+![](images/image processing/fill_content_proportionally.png)
+![](images/image processing/fill_frame_proportionally.png)
+![](images/image processing/repeat_edges.png)
+![](images/image processing/scatter_fill.png)
+![](images/image processing/stretch.png)
+![](images/image processing/zoom.png)
+
+Please see the [Gradio Documentation](docs/9.image-resize-processing.md) to learn more.
+
 
 ## Image Upscalers
 
