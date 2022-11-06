@@ -135,7 +135,7 @@ This allows for composition adjustments and generative backgrounds to help the d
 ![](images/image_resize_processing/stretch.png)
 ![](images/image_resize_processing/zoom.png)
 
-Please see the [Gradio Documentation](docs/9.image-resize-processing.md) to learn more.
+Please see the [Resize and Processing Documentation](docs/9.image-resize-processing.md) to learn more.
 
 
 ## Image Upscalers
