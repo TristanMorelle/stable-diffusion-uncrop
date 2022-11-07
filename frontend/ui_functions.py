@@ -288,6 +288,11 @@ def resize_image(resize_mode, im, width, height, resize_settings=None, debug=Fal
     elif resize_mode == 8:  # Crop content
         resize_settings = filter_settings_dict(resize_settings=resize_settings, func=img_p.zoom)
         res = img_p.zoom(**resize_settings)
+
+    elif resize_mode == 9:  # Crop content
+        resize_settings = filter_settings_dict(resize_settings=resize_settings, func=img_p.rotate)
+        res = img_p.rotate(**resize_settings)
+
     else:
         raise RuntimeError('unknown resize mode', resize_mode)
 
