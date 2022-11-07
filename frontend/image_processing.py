@@ -541,7 +541,7 @@ def rotate(img, rotate_degrees = 90):
     ====================================================================================================================
     """
     # rotate
-    rot = img.rotate(rotate_degrees, PIL.Image.NEAREST, expand = 1)
+    rot = img.rotate(rotate_degrees, Image.BICUBIC, expand = 1)
     return rot
 
 def fill_frame_proportionate(img, width, height):
