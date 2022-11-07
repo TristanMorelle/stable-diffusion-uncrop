@@ -231,7 +231,7 @@ class Resize_Tab():
                                                                               label='preset name')
                                     self.save_resize_preset_btn = gr.Button("Save Resize Preset")
 
-                self.resize_img_button = gr.Button("Resize")
+                self.resize_img_button = gr.Button("Resize/Process")
                 return self.img2img_resize
 
     def gather_vars(self,
