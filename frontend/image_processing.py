@@ -532,6 +532,18 @@ def zoom(img, zoom_scaler = .1):
 
     return img
 
+def rotate(img, rotate_degrees = 90):
+    """
+    zoom in or out percentually by cropping the image
+    ====================================================================================================================
+    :param img: source image with alpha
+    :param percent: scaler percentage
+    ====================================================================================================================
+    """
+    # rotate
+    rot = img.rotate(rotate_degrees, PIL.Image.NEAREST, expand = 1)
+    return rot
+
 def fill_frame_proportionate(img, width, height):
     """
     scale proportionally to the fill the full canvas
@@ -746,7 +758,8 @@ def get_resize_funtions():
             "Fill Content Proportionally",
             "Fill Frame Proportionally",
             "Crop Content",
-            "Zoom"]
+            "Zoom",
+            "Rotate"]
 
 
 def create_folder(path):
@@ -890,6 +903,10 @@ def get_default_presets(preset_name, debug=False):
 
     elif preset_name == 'Zoom' or preset_name == 8:
         preset_dict['zoom_scaler'] = 0.1
+        preset_dict['debug'] = False
+
+    elif preset_name == 'Rotate' or preset_name == 9:
+        preset_dict['rotate_degrees'] = 90
         preset_dict['debug'] = False
 
     else:

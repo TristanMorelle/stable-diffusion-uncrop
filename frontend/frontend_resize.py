@@ -40,6 +40,8 @@ class Resize_Tab():
         self.resize_preset_dropdown = None
         self.pre_fill_picker = None
         self.zoom_scaler_nr = None
+        self.rotate_degrees_nr = None
+
 
         # dicts
         self.param_ui_dict = dict()  # dict holding the gradui ui mapped to resize params
@@ -214,6 +216,11 @@ class Resize_Tab():
                                                             precision=2,
                                                             label='zoom scaler')
 
+                            self.rotate_degrees_nr = gr.Number(value=90,
+                                                               interactive=True,
+                                                               precision=2,
+                                                               label='rotate degrees')
+
                             with gr.Row():
                                 with gr.Column():
                                     self.debug_check = gr.Checkbox(value=False,
@@ -374,7 +381,8 @@ class Resize_Tab():
         self.param_ui_dict['comp_blur'] = self.comp_blur_nr
         # zoom
         self.param_ui_dict['zoom_scaler'] = self.zoom_scaler_nr
-
+        # rotate
+        self.param_ui_dict['rotate_degrees'] = self.rotate_degrees_nr
         # debug
         self.param_ui_dict['debug'] = self.debug_check
 
