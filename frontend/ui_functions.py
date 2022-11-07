@@ -285,11 +285,11 @@ def resize_image(resize_mode, im, width, height, resize_settings=None, debug=Fal
     elif resize_mode == 7:  # Crop content
         res = img_p.crop_content(img=im)
 
-    elif resize_mode == 8:  # Crop content
+    elif resize_mode == 8:  # zoom
         resize_settings = filter_settings_dict(resize_settings=resize_settings, func=img_p.zoom)
         res = img_p.zoom(**resize_settings)
 
-    elif resize_mode == 9:  # Crop content
+    elif resize_mode == 9:  # rotate
         resize_settings = filter_settings_dict(resize_settings=resize_settings, func=img_p.rotate)
         res = img_p.rotate(**resize_settings)
 

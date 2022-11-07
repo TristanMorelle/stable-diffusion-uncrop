@@ -254,8 +254,8 @@ def repeat_edges(img,
     :param pre_fill_square: make image content square before repeating edges, filling => color tuple, auto, auto_edge, None
     :param shrink_faded_edges: helps to get rid of faded borders in images alpha's.
     :param mask_final: create mask based on the content and fade repeated edges with this mask
-    :param mask_blur_range: mask blur amount
-    :param mask_bright: mark brightness (can be usefull to clip the mask)
+    :param mask_blur_range: final image mask blur amount
+    :param mask_bright: mask brightness (can be usefull to clip the mask)
     :param mask_dither_opacity: add noise to mask to avoid banding effect
     :param debug: show inbetween steps
     :return: pil image
@@ -303,6 +303,7 @@ def repeat_edges(img,
 
         if shrink_faded_edges:
             # crop mask for premultiplied edges
+            # make uneven
             if (shrink_faded_edges % 2) == 0:
                 shrink_faded_edges = shrink_faded_edges + 1
 
