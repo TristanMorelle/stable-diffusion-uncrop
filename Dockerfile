@@ -1,29 +1,25 @@
-FROM nvidia/cuda:11.3.1-runtime-ubuntu20.04
+ARG IMAGE=hlky/sd-webui:base
 
-ENV DEBIAN_FRONTEND=noninteractive \
-    PYTHONUNBUFFERED=1 \
-    PYTHONIOENCODING=UTF-8 \
-    CONDA_DIR=/opt/conda
+FROM ${IMAGE}
 
-WORKDIR /sd
+WORKDIR /workdir
 
 SHELL ["/bin/bash", "-c"]
 
-RUN apt-get update && \
-    apt-get install -y libglib2.0-0 wget && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+ENV PYTHONPATH=/sd
 
-# Install miniconda
-RUN wget -O ~/miniconda.sh -q --show-progress --progress=bar:force https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
-    /bin/bash ~/miniconda.sh -b -p $CONDA_DIR && \
-    rm ~/miniconda.sh
-ENV PATH=$CONDA_DIR/bin:$PATH
-
-# Install font for prompt matrix
-COPY /data/DejaVuSans.ttf /usr/share/fonts/truetype/
-
-EXPOSE 7860
-
+EXPOSE 8501
+COPY ./data/DejaVuSans.ttf /usr/share/fonts/truetype/
+COPY ./data/ /sd/data/
+copy ./images/ /sd/images/
+copy ./scripts/ /sd/scripts/
+copy ./ldm/ /sd/ldm/
+copy ./frontend/ /sd/frontend/
+copy ./configs/ /sd/configs/
+copy ./.streamlit/ /sd/.streamlit/
 COPY ./entrypoint.sh /sd/
 ENTRYPOINT /sd/entrypoint.sh
+
+RUN mkdir -p ~/.streamlit/
+RUN echo "[general]"  > ~/.streamlit/credentials.toml
+RUN echo "email = \"\""  >> ~/.streamlit/credentials.toml

@@ -1,8 +1,25 @@
-import argparse, os, sys, glob, re
+# This file is part of sygil-webui (https://github.com/Sygil-Dev/sygil-webui/).
+
+# Copyright 2022 Sygil-Dev team.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>. 
+import argparse, os, sys, glob, re, requests, json, time
 
 import cv2
 
+from logger import logger, set_logger_verbosity, quiesce_logger
 from perlin import perlinNoise
+from frontend import image_processing as img_p
 from frontend.frontend import draw_gradio_ui
 from frontend.job_manager import JobManager, JobInfo
 from frontend.image_metadata import ImageMetadata
@@ -17,18 +34,19 @@ parser.add_argument("--esrgan-gpu", type=int, help="run ESRGAN on specific gpu (
 parser.add_argument("--extra-models-cpu", action='store_true', help="run extra models (GFGPAN/ESRGAN) on cpu", default=False)
 parser.add_argument("--extra-models-gpu", action='store_true', help="run extra models (GFGPAN/ESRGAN) on gpu", default=False)
 parser.add_argument("--gfpgan-cpu", action='store_true', help="run GFPGAN on cpu", default=False)
-parser.add_argument("--gfpgan-dir", type=str, help="GFPGAN directory", default=('./src/gfpgan' if os.path.exists('./src/gfpgan') else './GFPGAN')) # i disagree with where you're putting it but since all guidefags are doing it this way, there you go
+parser.add_argument("--gfpgan-dir", type=str, help="GFPGAN directory", default=('./models/gfpgan' if os.path.exists('./models/gfpgan') else './GFPGAN')) # i disagree with where you're putting it but since all guidefags are doing it this way, there you go
 parser.add_argument("--gfpgan-gpu", type=int, help="run GFPGAN on specific gpu (overrides --gpu) ", default=0)
 parser.add_argument("--gpu", type=int, help="choose which GPU to use if you have multiple", default=0)
 parser.add_argument("--grid-format", type=str, help="png for lossless png files; jpg:quality for lossy jpeg; webp:quality for lossy webp, or webp:-compression for lossless webp", default="jpg:95")
 parser.add_argument("--inbrowser", action='store_true', help="automatically launch the interface in a new tab on the default browser", default=False)
-parser.add_argument("--ldsr-dir", type=str, help="LDSR directory", default=('./src/latent-diffusion' if os.path.exists('./src/latent-diffusion') else './LDSR'))
+parser.add_argument("--ldsr-dir", type=str, help="LDSR directory", default=('./models/ldsr' if os.path.exists('./models/ldsr') else './LDSR'))
 parser.add_argument("--n_rows", type=int, default=-1, help="rows in the grid; use -1 for autodetect and 0 for n_rows to be same as batch_size (default: -1)",)
 parser.add_argument("--no-half", action='store_true', help="do not switch the model to 16-bit floats", default=False)
 parser.add_argument("--no-progressbar-hiding", action='store_true', help="do not hide progressbar in gradio UI (we hide it because it slows down ML if you have hardware accleration in browser)", default=False)
 parser.add_argument("--no-verify-input", action='store_true', help="do not verify input to check if it's too long", default=False)
 parser.add_argument("--optimized-turbo", action='store_true', help="alternative optimization mode that does not save as much VRAM but runs siginificantly faster")
 parser.add_argument("--optimized", action='store_true', help="load the model onto the device piecemeal instead of all at once to reduce VRAM usage at the cost of performance")
+parser.add_argument("--outdir_scn2img", type=str, nargs="?", help="dir to write scn2img results to (overrides --outdir)", default=None)
 parser.add_argument("--outdir_img2img", type=str, nargs="?", help="dir to write img2img results to (overrides --outdir)", default=None)
 parser.add_argument("--outdir_imglab", type=str, nargs="?", help="dir to write imglab results to (overrides --outdir)", default=None)
 parser.add_argument("--outdir_txt2img", type=str, nargs="?", help="dir to write txt2img results to (overrides --outdir)", default=None)
@@ -36,7 +54,7 @@ parser.add_argument("--outdir", type=str, nargs="?", help="dir to write results 
 parser.add_argument("--filename_format", type=str, nargs="?", help="filenames format", default=None)
 parser.add_argument("--port", type=int, help="choose the port for the gradio webserver to use", default=7860)
 parser.add_argument("--precision", type=str, help="evaluate at this precision", choices=["full", "autocast"], default="autocast")
-parser.add_argument("--realesrgan-dir", type=str, help="RealESRGAN directory", default=('./src/realesrgan' if os.path.exists('./src/realesrgan') else './RealESRGAN'))
+parser.add_argument("--realesrgan-dir", type=str, help="RealESRGAN directory", default=('./models/realesrgan' if os.path.exists('./models/realesrgan') else './RealESRGAN'))
 parser.add_argument("--realesrgan-model", type=str, help="Upscaling model for RealESRGAN", default=('RealESRGAN_x4plus'))
 parser.add_argument("--save-metadata", action='store_true', help="Store generation parameters in the output png. Drop saved png into Image Lab to read parameters", default=False)
 parser.add_argument("--share-password", type=str, help="Sharing is open by default, use this to set a password. Username: webui", default=None)
@@ -46,6 +64,18 @@ parser.add_argument("--skip-save", action='store_true', help="do not save indivi
 parser.add_argument('--no-job-manager', action='store_true', help="Don't use the experimental job manager on top of gradio", default=False)
 parser.add_argument("--max-jobs", type=int, help="Maximum number of concurrent 'generate' commands", default=1)
 parser.add_argument("--tiling", action='store_true', help="Generate tiling images", default=False)
+parser.add_argument('-v', '--verbosity', action='count', default=0, help="The default logging level is ERROR or higher. This value increases the amount of logging seen in your screen")
+parser.add_argument('-q', '--quiet', action='count', default=0, help="The default logging level is ERROR or higher. This value decreases the amount of logging seen in your screen")
+parser.add_argument("--bridge", action='store_true', help="don't launch web server, but make this instance into a Horde bridge.", default=False)
+parser.add_argument('--horde_api_key', action="store", required=False, type=str, help="The API key corresponding to the owner of this Horde instance")
+parser.add_argument('--horde_name', action="store", required=False, type=str, help="The server name for the Horde. It will be shown to the world and there can be only one.")
+parser.add_argument('--horde_url', action="store", required=False, type=str, help="The SH Horde URL. Where the bridge will pickup prompts and send the finished generations.")
+parser.add_argument('--horde_priority_usernames',type=str, action='append', required=False, help="Usernames which get priority use in this horde instance. The owner's username is always in this list.")
+parser.add_argument('--horde_max_power',type=int, required=False, help="How much power this instance has to generate pictures. Min: 2")
+parser.add_argument('--horde_sfw', action='store_true', required=False, help="Set to true if you do not want this worker generating NSFW images.")
+parser.add_argument('--horde_blacklist', nargs='+', required=False, help="List the words that you want to blacklist.")
+parser.add_argument('--horde_censorlist', nargs='+', required=False, help="List the words that you want to censor.")
+parser.add_argument('--horde_censor_nsfw', action='store_true', required=False, help="Set to true if you want this bridge worker to censor NSFW images.")
 opt = parser.parse_args()
 
 #Should not be needed anymore
@@ -74,6 +104,7 @@ import copy
 from typing import List, Union, Dict, Callable, Any, Optional
 from pathlib import Path
 from collections import namedtuple
+from functools import partial
 
 # tell the user which GPU the code is actually using
 if os.getenv("SD_WEBUI_DEBUG", 'False').lower() in ('true', '1', 'y'):
@@ -307,15 +338,21 @@ class KDiffusionSampler:
         self.schedule = sampler
     def get_sampler_name(self):
         return self.schedule
-    def sample(self, S, conditioning, batch_size, shape, verbose, unconditional_guidance_scale, unconditional_conditioning, eta, x_T):
+    def sample(self, S, conditioning, batch_size, shape, verbose, unconditional_guidance_scale, unconditional_conditioning, eta, x_T, img_callback: Callable = None ):
         sigmas = self.model_wrap.get_sigmas(S)
         x = x_T * sigmas[0]
         model_wrap_cfg = CFGDenoiser(self.model_wrap)
 
-        samples_ddim = K.sampling.__dict__[f'sample_{self.schedule}'](model_wrap_cfg, x, sigmas, extra_args={'cond': conditioning, 'uncond': unconditional_conditioning, 'cond_scale': unconditional_guidance_scale}, disable=False)
+        samples_ddim = K.sampling.__dict__[f'sample_{self.schedule}'](model_wrap_cfg, x, sigmas, extra_args={'cond': conditioning, 'uncond': unconditional_conditioning, 'cond_scale': unconditional_guidance_scale}, disable=False, callback=partial(KDiffusionSampler.img_callback_wrapper, img_callback))
 
         return samples_ddim, None
 
+    @classmethod
+    def img_callback_wrapper(cls, callback: Callable, *args):
+        ''' Converts a KDiffusion callback to the standard img_callback '''
+        if callback:
+            arg_dict = args[0]
+            callback(image_sample=arg_dict['denoised'], iter_num=arg_dict['i'])
 
 def create_random_tensors(shape, seeds):
     xs = []
@@ -336,8 +373,8 @@ def torch_gc():
 def load_LDSR(checking=False):
     model_name = 'model'
     yaml_name = 'project'
-    model_path = os.path.join(LDSR_dir, 'experiments/pretrained_models', model_name + '.ckpt')
-    yaml_path = os.path.join(LDSR_dir, 'experiments/pretrained_models', yaml_name + '.yaml')
+    model_path = os.path.join(LDSR_dir, model_name + '.ckpt')
+    yaml_path = os.path.join(LDSR_dir, yaml_name + '.yaml')
     if not os.path.isfile(model_path):
         raise Exception("LDSR model not found at path "+model_path)
     if not os.path.isfile(yaml_path):
@@ -351,7 +388,7 @@ def load_LDSR(checking=False):
     return LDSRObject
 def load_GFPGAN(checking=False):
     model_name = 'GFPGANv1.3'
-    model_path = os.path.join(GFPGAN_dir, 'experiments/pretrained_models', model_name + '.pth')
+    model_path = os.path.join(GFPGAN_dir, model_name + '.pth')
     if not os.path.isfile(model_path):
         raise Exception("GFPGAN model not found at path "+model_path)
     if checking == True:
@@ -374,7 +411,7 @@ def load_RealESRGAN(model_name: str, checking = False):
         'RealESRGAN_x4plus_anime_6B': RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=6, num_grow_ch=32, scale=4)
     }
 
-    model_path = os.path.join(RealESRGAN_dir, 'experiments/pretrained_models', model_name + '.pth')
+    model_path = os.path.join(RealESRGAN_dir, model_name + '.pth')
     if not os.path.isfile(model_path):
         raise Exception(model_name+".pth not found at path "+model_path)
     if checking == True:
@@ -434,7 +471,7 @@ def try_loading_LDSR(model_name: str,checking=False):
             print("Error loading LDSR:", file=sys.stderr)
             print(traceback.format_exc(), file=sys.stderr)
     else:
-        print("LDSR not found at path, please make sure you have cloned the LDSR repo to ./src/latent-diffusion/")
+        print("LDSR not found at path, please make sure you have cloned the LDSR repo to ./models/ldsr/")
 try_loading_LDSR('model',checking=True)
 
 def load_SD_model():
@@ -727,6 +764,9 @@ def get_next_sequence_number(path, prefix=''):
 
     The sequence starts at 0.
     """
+    # Because when running in bridge-mode, we do not have a dir
+    if opt.bridge: 
+        return(0)
     result = -1
     for p in Path(path).iterdir():
         if p.name.endswith(('.png', '.jpg')) and p.name.startswith(prefix):
@@ -911,10 +951,12 @@ def process_images(
     if hasattr(model, "embedding_manager"):
         load_embeddings(fp)
 
-    os.makedirs(outpath, exist_ok=True)
+    if not opt.bridge:
+        os.makedirs(outpath, exist_ok=True)
 
     sample_path = os.path.join(outpath, "samples")
-    os.makedirs(sample_path, exist_ok=True)
+    if not opt.bridge:
+        os.makedirs(sample_path, exist_ok=True)
 
     if not ("|" in prompt) and prompt.startswith("@"):
         prompt = prompt[1:]
@@ -1003,6 +1045,7 @@ def process_images(
 
             if job_info:
                 job_info.job_status = f"Processing Iteration {n+1}/{n_iter}. Batch size {batch_size}"
+                job_info.rec_steps_imgs.clear()
                 for idx,(p,s) in enumerate(zip(prompts,seeds)):
                     job_info.job_status += f"\nItem {idx}: Seed {s}\nPrompt: {p}"
                     print(f"Current prompt: {p}")
@@ -1057,7 +1100,78 @@ def process_images(
                 # finally, slerp base_x noise to target_x noise for creating a variant
                 x = slerp(device, max(0.0, min(1.0, cur_variant_amount)), base_x, target_x)
 
-            samples_ddim = func_sample(init_data=init_data, x=x, conditioning=c, unconditional_conditioning=uc, sampler_name=sampler_name)
+            # If optimized then use first stage for preview and store it on cpu until needed
+            if opt.optimized:
+                step_preview_model = modelFS
+                step_preview_model.cpu()
+            else:
+                step_preview_model = model
+
+            def sample_iteration_callback(image_sample: torch.Tensor, iter_num: int):
+                ''' Called from the sampler every iteration '''
+                if job_info:
+                    job_info.active_iteration_cnt = iter_num
+                    record_periodic_image = job_info.rec_steps_enabled and (0 == iter_num % job_info.rec_steps_intrvl)
+                    if record_periodic_image or job_info.refresh_active_image_requested.is_set():
+                        preview_start_time = time.time()
+                        if opt.optimized:
+                            step_preview_model.to(device)
+
+                        decoded_batch: List[torch.Tensor] = []
+                        # Break up batch to save VRAM
+                        for sample in image_sample:
+                            sample = sample[None, :]  # expands the tensor as if it still had a batch dimension
+                            decoded_sample = step_preview_model.decode_first_stage(sample)[0]
+                            decoded_sample = torch.clamp((decoded_sample + 1.0) / 2.0, min=0.0, max=1.0)
+                            decoded_sample = decoded_sample.cpu()
+                            decoded_batch.append(decoded_sample)
+
+                        batch_size = len(decoded_batch)
+
+                        if opt.optimized:
+                            step_preview_model.cpu()
+
+                        images: List[Image.Image] = []
+                        # Convert tensor to image (copied from code below)
+                        for ddim in decoded_batch:
+                            x_sample = 255. * rearrange(ddim.numpy(), 'c h w -> h w c')
+                            x_sample = x_sample.astype(np.uint8)
+                            image = Image.fromarray(x_sample)
+                            images.append(image)
+
+                        caption = f"Iter {iter_num}"
+                        grid = image_grid(images, len(images), force_n_rows=1, captions=[caption]*len(images))
+
+                        # Save the images if recording steps, and append existing saved steps
+                        if job_info.rec_steps_enabled:
+                            gallery_img_size = tuple(int(0.25*dim) for dim in images[0].size)
+                            job_info.rec_steps_imgs.append(grid.resize(gallery_img_size))
+
+                        # Notify the requester that the image is updated
+                        if job_info.refresh_active_image_requested.is_set():
+                            if job_info.rec_steps_enabled:
+                                grid_rows = None if batch_size == 1 else len(job_info.rec_steps_imgs)
+                                grid = image_grid(imgs=job_info.rec_steps_imgs[::-1], batch_size=1, force_n_rows=grid_rows)
+                            job_info.active_image = grid
+                            job_info.refresh_active_image_done.set()
+                            job_info.refresh_active_image_requested.clear()
+
+                        preview_elapsed_timed = time.time() - preview_start_time
+                        if preview_elapsed_timed / job_info.rec_steps_intrvl > 1:
+                            print(
+                                f"Warning: Preview generation is slowing image generation. It took {preview_elapsed_timed:.2f}s to generate progress images for batch of {batch_size} images!")
+
+                    # Interrupt current iteration?
+                    if job_info.stop_cur_iter.is_set():
+                        job_info.stop_cur_iter.clear()
+                        raise StopIteration()
+
+            try:
+                samples_ddim = func_sample(init_data=init_data, x=x, conditioning=c, unconditional_conditioning=uc, sampler_name=sampler_name, img_callback=sample_iteration_callback)
+            except StopIteration:
+                print("Skipping iteration")
+                job_info.job_status = "Skipping iteration"
+                continue
 
             if opt.optimized:
                 modelFS.to(device)
@@ -1082,7 +1196,8 @@ def process_images(
                 if sort_samples:
                     sanitized_prompt = sanitized_prompt[:128] #200 is too long
                     sample_path_i = os.path.join(sample_path, sanitized_prompt)
-                    os.makedirs(sample_path_i, exist_ok=True)
+                    if not opt.bridge:
+                        os.makedirs(sample_path_i, exist_ok=True)
                     base_count = get_next_sequence_number(sample_path_i)
                     filename = opt.filename_format or "[STEPS]_[SAMPLER]_[SEED]_[VARIANT_AMOUNT]"
                 else:
@@ -1196,6 +1311,18 @@ skip_grid, sort_samples, sampler_name, ddim_eta, n_iter, batch_size, i, denoisin
                     if simple_templating:
                         grid_captions.append( captions[i] )
 
+            # Save the progress images?
+            if job_info:
+                if job_info.rec_steps_enabled and (job_info.rec_steps_to_file or job_info.rec_steps_to_gallery):
+                    steps_grid = image_grid(job_info.rec_steps_imgs, 1)
+                    if job_info.rec_steps_to_gallery:
+                        gallery_img_size = tuple(2*dim for dim in image.size)
+                        output_images.append( steps_grid.resize( gallery_img_size ) )
+                    if job_info.rec_steps_to_file:
+                        steps_grid_filename = f"{original_filename}_step_grid"
+                        save_sample(steps_grid, sample_path_i, steps_grid_filename, jpg_sample, write_info_files, write_sample_info_to_log_file, prompt_matrix, init_img, uses_loopback, uses_random_seed_loopback, skip_save,
+                                    skip_grid, sort_samples, sampler_name, ddim_eta, n_iter, batch_size, i, denoising_strength, resize_mode, False)
+
             if opt.optimized:
                 mem = torch.cuda.memory_allocated()/1e6
                 modelFS.to("cpu")
@@ -1215,12 +1342,14 @@ skip_grid, sort_samples, sampler_name, ddim_eta, n_iter, batch_size, i, denoisin
                         import traceback
                         print("Error creating prompt_matrix text:", file=sys.stderr)
                         print(traceback.format_exc(), file=sys.stderr)
-            elif batch_size > 1  or n_iter > 1:
+            elif len(output_images) > 0 and (batch_size > 1  or n_iter > 1):
                 grid = image_grid(output_images, batch_size)
             if grid is not None:
                 grid_count = get_next_sequence_number(outpath, 'grid-')
                 grid_file = f"grid-{grid_count:05}-{seed}_{prompts[i].replace(' ', '_').translate({ord(x): '' for x in invalid_filename_chars})[:128]}.{grid_ext}"
                 grid.save(os.path.join(outpath, grid_file), grid_format, quality=grid_quality, lossless=grid_lossless, optimize=True)
+                if prompt_matrix:
+                    output_images.append(grid)
 
         toc = time.time()
 
@@ -1256,9 +1385,23 @@ Peak memory usage: { -(mem_max_used // -1_048_576) } MiB / { -(mem_total // -1_0
     return output_images, seed, info, stats
 
 
-def txt2img(prompt: str, ddim_steps: int, sampler_name: str, toggles: List[int], realesrgan_model_name: str,
-            ddim_eta: float, n_iter: int, batch_size: int, cfg_scale: float, seed: Union[int, str, None],
-            height: int, width: int, fp, variant_amount: float = None, variant_seed: int = None, job_info: JobInfo = None):
+def txt2img(
+        prompt: str, 
+        ddim_steps: int = 50, 
+        sampler_name: str = 'k_lms', 
+        toggles: List[int] = [1, 4], 
+        realesrgan_model_name: str = '',
+        ddim_eta: float = 0.0, 
+        n_iter: int = 1, 
+        batch_size: int = 1, 
+        cfg_scale: float = 5.0, 
+        seed: Union[int, str, None] = None,
+        height: int = 512, 
+        width: int = 512, 
+        fp = None, 
+        variant_amount: float = 0.0, 
+        variant_seed: int = None, 
+        job_info: JobInfo = None):
     outpath = opt.outdir_txt2img or opt.outdir or "outputs/txt2img-samples"
     err = False
     seed = seed_to_int(seed)
@@ -1308,8 +1451,8 @@ def txt2img(prompt: str, ddim_steps: int, sampler_name: str, toggles: List[int],
     def init():
         pass
 
-    def sample(init_data, x, conditioning, unconditional_conditioning, sampler_name):
-        samples_ddim, _ = sampler.sample(S=ddim_steps, conditioning=conditioning, batch_size=int(x.shape[0]), shape=x[0].shape, verbose=False, unconditional_guidance_scale=cfg_scale, unconditional_conditioning=unconditional_conditioning, eta=ddim_eta, x_T=x)
+    def sample(init_data, x, conditioning, unconditional_conditioning, sampler_name, img_callback: Callable = None):
+        samples_ddim, _ = sampler.sample(S=ddim_steps, conditioning=conditioning, batch_size=int(x.shape[0]), shape=x[0].shape, verbose=False, unconditional_guidance_scale=cfg_scale, unconditional_conditioning=unconditional_conditioning, eta=ddim_eta, x_T=x, img_callback=img_callback)
         return samples_ddim
 
     try:
@@ -1573,7 +1716,7 @@ def img2img(prompt: str, image_editor_mode: str, mask_mode: str, mask_blur_stren
 
         return init_latent, mask,
 
-    def sample(init_data, x, conditioning, unconditional_conditioning, sampler_name):
+    def sample(init_data, x, conditioning, unconditional_conditioning, sampler_name, img_callback: Callable = None):
         t_enc_steps = t_enc
         obliterate = False
         if ddim_steps == t_enc_steps:
@@ -1595,7 +1738,7 @@ def img2img(prompt: str, image_editor_mode: str, mask_mode: str, mask_blur_stren
 
             sigma_sched = sigmas[ddim_steps - t_enc_steps - 1:]
             model_wrap_cfg = CFGMaskedDenoiser(sampler.model_wrap)
-            samples_ddim = K.sampling.__dict__[f'sample_{sampler.get_sampler_name()}'](model_wrap_cfg, xi, sigma_sched, extra_args={'cond': conditioning, 'uncond': unconditional_conditioning, 'cond_scale': cfg_scale, 'mask': z_mask, 'x0': x0, 'xi': xi}, disable=False)
+            samples_ddim = K.sampling.__dict__[f'sample_{sampler.get_sampler_name()}'](model_wrap_cfg, xi, sigma_sched, extra_args={'cond': conditioning, 'uncond': unconditional_conditioning, 'cond_scale': cfg_scale, 'mask': z_mask, 'x0': x0, 'xi': xi}, disable=False, callback=partial(KDiffusionSampler.img_callback_wrapper, img_callback))
         else:
 
             x0, z_mask = init_data
@@ -1747,7 +1890,7 @@ prompt_parser = re.compile("""
     (?:             # non-capture group
     :+              # match one or more ':' characters
     (?P<weight>     # capture group for 'weight'
-    -?\d+(?:\.\d+)? # match positive or negative integer or decimal number
+    -?\d*\.{0,1}\d+ # match positive or negative integer or decimal number
     )?              # end weight capture group, make optional
     \s*             # strip spaces after weight
     |               # OR
@@ -1900,7 +2043,7 @@ def imgproc(image,image_batch,imgproc_prompt,imgproc_toggles, imgproc_upscale_to
 
             return init_latent,
 
-        def sample(init_data, x, conditioning, unconditional_conditioning, sampler_name):
+        def sample(init_data, x, conditioning, unconditional_conditioning, sampler_name, img_callback: Callable = None):
             if sampler_name != 'DDIM':
                 x0, = init_data
 
@@ -1910,7 +2053,7 @@ def imgproc(image,image_batch,imgproc_prompt,imgproc_toggles, imgproc_upscale_to
                 xi = x0 + noise
                 sigma_sched = sigmas[ddim_steps - t_enc - 1:]
                 model_wrap_cfg = CFGDenoiser(sampler.model_wrap)
-                samples_ddim = K.sampling.__dict__[f'sample_{sampler.get_sampler_name()}'](model_wrap_cfg, xi, sigma_sched, extra_args={'cond': conditioning, 'uncond': unconditional_conditioning, 'cond_scale': cfg_scale}, disable=False)
+                samples_ddim = K.sampling.__dict__[f'sample_{sampler.get_sampler_name()}'](model_wrap_cfg, xi, sigma_sched, extra_args={'cond': conditioning, 'uncond': unconditional_conditioning, 'cond_scale': cfg_scale}, disable=False, callback=partial(KDiffusionSampler.img_callback_wrapper, img_callback))
             else:
                 x0, = init_data
                 sampler.make_schedule(ddim_num_steps=ddim_steps, ddim_eta=0.0, verbose=False)
@@ -2276,6 +2419,7 @@ txt2img_defaults = {
     'variant_amount': 0.0,
     'variant_seed': '',
     'submit_on_enter': 'Yes',
+    'realesrgan_model_name': 'RealESRGAN_x4plus',
 }
 
 if 'txt2img' in user_defaults:
@@ -2327,11 +2471,7 @@ img2img_mask_modes = [
     "Regenerate only masked area",
 ]
 
-img2img_resize_modes = [
-    "Just resize",
-    "Crop and resize",
-    "Resize and fill",
-]
+img2img_resize_modes = img_p.get_resize_funtions()
 
 img2img_defaults = {
     'prompt': '',
@@ -2350,6 +2490,9 @@ img2img_defaults = {
     'height': 512,
     'width': 512,
     'fp': None,
+    'mask_blur_strength': 1,
+    'realesrgan_model_name': 'RealESRGAN_x4plus',
+    'image_editor_mode': 'Mask'
 }
 
 if 'img2img' in user_defaults:
@@ -2357,6 +2500,34 @@ if 'img2img' in user_defaults:
 
 img2img_toggle_defaults = [img2img_toggles[i] for i in img2img_defaults['toggles']]
 img2img_image_mode = 'sketch'
+
+from scn2img import get_scn2img, scn2img_define_args
+# avoid circular import, by passing all necessary types, functions 
+# and variables to get_scn2img, which will return scn2img function.
+scn2img = get_scn2img(
+    MemUsageMonitor, save_sample, get_next_sequence_number, seed_to_int, 
+    txt2img, txt2img_defaults, img2img, img2img_defaults, 
+    opt
+)
+
+scn2img_toggles = [
+    'Clear Cache',
+    'Output intermediate images',
+    'Save individual images',
+    'Write sample info files',
+    'Write sample info to one file',
+    'jpg samples',
+]
+scn2img_defaults = {
+    'prompt': '',
+    'seed': '',
+    'toggles': [1, 2, 3]
+}
+
+if 'scn2img' in user_defaults:
+    scn2img_defaults.update(user_defaults['scn2img'])
+
+scn2img_toggle_defaults = [scn2img_toggles[i] for i in scn2img_defaults['toggles']]
 
 help_text = """
     ## Mask/Crop
@@ -2386,6 +2557,7 @@ demo = draw_gradio_ui(opt,
                       txt2img=txt2img,
                       img2img=img2img,
                       imgproc=imgproc,
+                      scn2img=scn2img,
                       txt2img_defaults=txt2img_defaults,
                       txt2img_toggles=txt2img_toggles,
                       txt2img_toggle_defaults=txt2img_toggle_defaults,
@@ -2398,6 +2570,10 @@ demo = draw_gradio_ui(opt,
                       sample_img2img=sample_img2img,
                       imgproc_defaults=imgproc_defaults,
                       imgproc_mode_toggles=imgproc_mode_toggles,
+                      scn2img_defaults=scn2img_defaults,
+                      scn2img_toggles=scn2img_toggles,
+                      scn2img_toggle_defaults=scn2img_toggle_defaults,
+                      scn2img_define_args=scn2img_define_args,
                       RealESRGAN=RealESRGAN,
                       GFPGAN=GFPGAN,
                       LDSR=LDSR,
@@ -2472,8 +2648,193 @@ def run_headless():
         print(stats)
         print()
 
+@logger.catch
+def run_bridge(interval, api_key, horde_name, horde_url, priority_usernames, horde_max_pixels, horde_nsfw, horde_censor_nsfw, horde_blacklist, horde_censorlist):
+    current_id = None
+    current_payload = None
+    loop_retry = 0
+    while True:
+        if loop_retry > 10 and current_id:
+            logger.error(f"Exceeded retry count {loop_retry} for generation id {current_id}. Aborting generation!")
+            current_id = None
+            current_payload = None
+            current_generation = None
+            loop_retry = 0
+        elif current_id:
+            logger.debug(f"Retrying ({loop_retry}/10) for generation id {current_id}...")
+        gen_dict = {
+            "name": horde_name,
+            "max_pixels": horde_max_pixels,
+            "priority_usernames": priority_usernames,
+            "nsfw": horde_nsfw,
+            "blacklist": horde_blacklist,
+        }
+        headers = {"apikey": api_key}
+        if current_id:
+            loop_retry += 1
+        else:
+            try:
+                pop_req = requests.post(horde_url + '/api/v2/generate/pop', json = gen_dict, headers = headers)
+            except requests.exceptions.ConnectionError:
+                logger.warning(f"Server {horde_url} unavailable during pop. Waiting 10 seconds...")
+                time.sleep(10)
+                continue
+            except requests.exceptions.JSONDecodeError():
+                logger.warning(f"Server {horde_url} unavailable during pop. Waiting 10 seconds...")
+                time.sleep(10)
+                continue
+            try:
+                pop = pop_req.json()
+            except json.decoder.JSONDecodeError:
+                logger.error(f"Could not decode response from {horde_url} as json. Please inform its administrator!")
+                time.sleep(interval)
+                continue
+            if pop == None:
+                logger.error(f"Something has gone wrong with {horde_url}. Please inform its administrator!")
+                time.sleep(interval)
+                continue
+            if not pop_req.ok:
+                message = pop['message']
+                logger.warning(f"During gen pop, server {horde_url} responded with status code {pop_req.status_code}: {pop['message']}. Waiting for 10 seconds...")
+                if 'errors' in pop:
+                    logger.warning(f"Detailed Request Errors: {pop['errors']}")
+                time.sleep(10)
+                continue
+            if not pop.get("id"):
+                skipped_info = pop.get('skipped')
+                if skipped_info and len(skipped_info):
+                    skipped_info = f" Skipped Info: {skipped_info}."
+                else:
+                    skipped_info = ''
+                logger.debug(f"Server {horde_url} has no valid generations to do for us.{skipped_info}")
+                time.sleep(interval)
+                continue
+            current_id = pop['id']
+            logger.debug(f"Request with id {current_id} picked up. Initiating work...")
+            current_payload = pop['payload']
+            if 'toggles' in current_payload and current_payload['toggles'] == None:
+                logger.error(f"Received Bad payload: {pop}")
+                current_id = None
+                current_payload = None
+                current_generation = None
+                loop_retry = 0
+                time.sleep(10)
+                continue
+        current_payload['toggles'] = current_payload.get('toggles', [1,4])
+        # In bridge-mode, matrix is prepared on the horde and split in multiple nodes
+        if 0 in current_payload['toggles']:
+            current_payload['toggles'].remove(0)
+        if 8 not in current_payload['toggles']:
+            if horde_censor_nsfw and not horde_nsfw:
+                current_payload['toggles'].append(8)
+            elif any(word in current_payload['prompt'] for word in horde_censorlist):
+                current_payload['toggles'].append(8)
+        images, seed, info, stats = txt2img(**current_payload)
+        buffer = BytesIO()
+        # We send as WebP to avoid using all the horde bandwidth
+        images[0].save(buffer, format="WebP", quality=90)
+        # logger.info(info)
+        submit_dict = {
+            "id": current_id,
+            "generation": base64.b64encode(buffer.getvalue()).decode("utf8"),
+            "api_key": api_key,
+            "seed": seed,
+            "max_pixels": horde_max_pixels,
+        }
+        current_generation = seed
+        while current_id and current_generation != None:
+            try:
+                submit_req = requests.post(horde_url + '/api/v2/generate/submit', json = submit_dict, headers = headers)
+                try:
+                    submit = submit_req.json()
+                except json.decoder.JSONDecodeError:
+                    logger.error(f"Something has gone wrong with {horde_url} during submit. Please inform its administrator!  (Retry {loop_retry}/10)")
+                    time.sleep(interval)
+                    continue
+                if submit_req.status_code == 404:
+                    logger.warning(f"The generation we were working on got stale. Aborting!")
+                elif not submit_req.ok:
+                    logger.warning(f"During gen submit, server {horde_url} responded with status code {submit_req.status_code}: {submit['message']}. Waiting for 10 seconds...  (Retry {loop_retry}/10)")
+                    if 'errors' in submit:
+                        logger.warning(f"Detailed Request Errors: {submit['errors']}")
+                    time.sleep(10)
+                    continue
+                else:
+                    logger.info(f'Submitted generation with id {current_id} and contributed for {submit_req.json()["reward"]}')
+                current_id = None
+                current_payload = None
+                current_generation = None
+                loop_retry = 0
+            except requests.exceptions.ConnectionError:
+                logger.warning(f"Server {horde_url} unavailable during submit. Waiting 10 seconds...  (Retry {loop_retry}/10)")
+                time.sleep(10)
+                continue
+        time.sleep(interval)
+
+
 if __name__ == '__main__':
-    if opt.cli is None:
-        launch_server()
-    else:
+    set_logger_verbosity(opt.verbosity)
+    quiesce_logger(opt.quiet)
+    if opt.cli:
         run_headless()
+    if opt.bridge:
+        try:
+            import bridgeData as cd
+        except ModuleNotFoundError as e:
+            logger.warning("No bridgeData found. Falling back to default where no CLI args are set.")
+            logger.warning(str(e))
+        except SyntaxError as e:
+            logger.warning("bridgeData found, but is malformed. Falling back to default where no CLI args are set.")
+            logger.warning(str(e))
+        except Exception as e:
+            logger.warning("No bridgeData found, use default where no CLI args are set")
+            logger.warning(str(e))
+        finally:
+            try: # check if cd exists (i.e. bridgeData loaded properly)
+                cd
+            except: # if not, create defaults
+                class temp(object):
+                    def __init__(self):
+                        random.seed()
+                        self.horde_url = "https://stablehorde.net"
+                        # Give a cool name to your instance
+                        self.horde_name = f"Automated Instance #{random.randint(-100000000, 100000000)}"
+                        # The api_key identifies a unique user in the horde
+                        self.horde_api_key = "0000000000"
+                        # Put other users whose prompts you want to prioritize.
+                        # The owner's username is always included so you don't need to add it here, unless you want it to have lower priority than another user
+                        self.horde_priority_usernames = []
+                        self.horde_max_power = 8
+                        self.nsfw = True
+                cd = temp()
+        horde_api_key = opt.horde_api_key if opt.horde_api_key else cd.horde_api_key
+        horde_name = opt.horde_name if opt.horde_name else cd.horde_name
+        horde_url = opt.horde_url if opt.horde_url else cd.horde_url
+        horde_priority_usernames = opt.horde_priority_usernames if opt.horde_priority_usernames else cd.horde_priority_usernames
+        horde_max_power = opt.horde_max_power if opt.horde_max_power else cd.horde_max_power
+        try:
+            horde_nsfw = not opt.horde_sfw if opt.horde_sfw else cd.horde_nsfw 
+        except AttributeError:
+            horde_nsfw = True
+        try:
+            horde_censor_nsfw = opt.horde_censor_nsfw if opt.horde_censor_nsfw else cd.horde_censor_nsfw
+        except AttributeError:
+            horde_censor_nsfw = False
+        try:
+            horde_blacklist = opt.horde_blacklist if opt.horde_blacklist else cd.horde_blacklist
+        except AttributeError:
+            horde_blacklist = []
+        try:
+            horde_censorlist = opt.horde_censorlist if opt.horde_censorlist else cd.horde_censorlist
+        except AttributeError:
+            horde_censorlist = []
+        if horde_max_power < 2:
+            horde_max_power = 2
+        horde_max_pixels = 64*64*8*horde_max_power
+        logger.info(f"Joining Horde with parameters: API Key '{horde_api_key}'. Server Name '{horde_name}'. Horde URL '{horde_url}'. Max Pixels {horde_max_pixels}")
+        try:
+            run_bridge(1, horde_api_key, horde_name, horde_url, horde_priority_usernames, horde_max_pixels, horde_nsfw, horde_censor_nsfw, horde_blacklist, horde_censorlist)
+        except KeyboardInterrupt:
+            logger.info(f"Keyboard Interrupt Received. Ending Bridge")
+    else:
+        launch_server()

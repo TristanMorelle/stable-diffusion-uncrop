@@ -1,226 +1,174 @@
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/altryne/sd-webui-colab/blob/main/Stable_Diffusion_WebUi_Altryne.ipynb)
+# <center>Web-based UI for Stable Diffusion</center>
 
-# Installation instructions for [Windows](https://github.com/sd-webui/stable-diffusion-webui/wiki/Installation), [Linux](https://github.com/sd-webui/stable-diffusion-webui/wiki/Linux-Automated-Setup-Guide), or [Google Colab](https://colab.research.google.com/github/altryne/sd-webui-colab/blob/main/Stable_Diffusion_WebUi_Altryne.ipynb)
+## Created by [Sygil.Dev](https://github.com/sygil-dev)
 
-### Have an **issue**? 
+## [Join us at Sygil.Dev's Discord Server](https://discord.gg/gyXNe4NySY) [![Discord Server](https://user-images.githubusercontent.com/5977640/190528254-9b5b4423-47ee-4f24-b4f9-fd13fba37518.png)](https://discord.gg/gyXNe4NySY)
 
-* If the issue involves _a bug_ in **textual-inversion** create the issue on **_[sd-webui/stable-diffusion-webui](https://github.com/sd-webui/stable-diffusion-webui)_**
-* If you want to know how to **activate** or **use** textual-inversion see **_[hlky/sd-enable-textual-inversion](https://github.com/hlky/sd-enable-textual-inversion)_**. Activation not working? create the issue on **_[sd-webui/stable-diffusion-webui](https://github.com/sd-webui/stable-diffusion-webui)_**
+## Installation instructions for:
 
-### Want to contribute?
+- **[Windows](https://sygil-dev.github.io/sygil-webui/docs/1.windows-installation.html)** 
+- **[Linux](https://sygil-dev.github.io/sygil-webui/docs/2.linux-installation.html)**
 
-Open new Pull Requests against `dev` branch!
+### Want to ask a question or request a feature?
 
-**If you're thinking about adding a new feature to Web UI focus on the Streamlit version (webui_streamlit.py) which is in active development.**
+Come to our [Discord Server](https://discord.gg/gyXNe4NySY) or use [Discussions](https://github.com/sygil-dev/sygil-webui/discussions).
 
-## More documentation about features, troubleshooting, common issues very soon
-### Want to help with documentation? Documented something? Use [Discussions](https://github.com/sd-webui/stable-diffusion-webui/discussions)
+## Documentation
 
-## **Important**
+[Documentation is located here](https://sygil-dev.github.io/sygil-webui/)
 
-🔥 NEW! webui.cmd updates with any changes in environment.yaml file so the environment will always be up to date as long as you get the new environment.yaml file 🔥
+## Want to contribute?
 
-:fire: no need to remove environment, delete src folder and create again, MUCH simpler! 🔥
+Check the [Contribution Guide](CONTRIBUTING.md)
 
+[Sygil-Dev](https://github.com/Sygil-Dev) main devs:
 
+* ![hlky's avatar](https://avatars.githubusercontent.com/u/106811348?s=40&v=4) [hlky](https://github.com/hlky)
+* ![ZeroCool940711's avatar](https://avatars.githubusercontent.com/u/5977640?s=40&v=4)[ZeroCool940711](https://github.com/ZeroCool940711)
+* ![codedealer's avatar](https://avatars.githubusercontent.com/u/4258136?s=40&v=4)[codedealer](https://github.com/codedealer)
 
+### Project Features:
 
---------------
+* Built-in image enhancers and upscalers, including GFPGAN and realESRGAN
 
-### Questions about **_[Upscalers](https://github.com/sd-webui/stable-diffusion-webui/wiki/Upscalers)_**?
-### Questions about **_[Optimized mode](https://github.com/sd-webui/stable-diffusion-webui/wiki/Optimized-mode)_**?
-### Questions about **_[Command line options](https://github.com/sd-webui/stable-diffusion-webui/wiki/Command-line-options)_**?
+* Generator Preview: See your image as its being made
 
---------------
+* Run additional upscaling models on CPU to save VRAM
 
+* Textual inversion: [Reaserch Paper](https://textual-inversion.github.io/) 
 
-Features:
+* K-Diffusion Samplers: A great collection of samplers to use, including:
+  
+  - `k_euler`
+  - `k_lms`
+  - `k_euler_a`
+  - `k_dpm_2`
+  - `k_dpm_2_a`
+  - `k_heun`
+  - `PLMS`
+  - `DDIM`
 
-* Gradio GUI: Idiot-proof, fully featured frontend for both txt2img and img2img generation
-* No more manually typing parameters, now all you have to do is write your prompt and adjust sliders
-* GFPGAN Face Correction 🔥: [Download the model](https://github.com/sd-webui/stable-diffusion-webui/wiki/Installation#optional-additional-models) Automatically correct distorted faces with a built-in GFPGAN option, fixes them in less than half a second 
-* RealESRGAN Upscaling 🔥: [Download the models](https://github.com/sd-webui/stable-diffusion-webui/wiki/Installation#optional-additional-models) Boosts the resolution of images with a built-in RealESRGAN option 
-* :computer: esrgan/gfpgan on cpu support :computer:
-* Textual inversion 🔥: [info](https://textual-inversion.github.io/) - requires enabling, see [here](https://github.com/hlky/sd-enable-textual-inversion), script works as usual without it enabled
-* Advanced img2img editor :art: :fire: :art:
-* :fire::fire: Mask and crop :fire::fire:
-* Mask painting (NEW) 🖌️: Powerful tool for re-generating only specific parts of an image you want to change
-* More k_diffusion samplers 🔥🔥 : Far greater quality outputs than the default sampler, less distortion and more accurate
-* txt2img samplers: "DDIM", "PLMS", 'k_dpm_2_a', 'k_dpm_2', 'k_euler_a', 'k_euler', 'k_heun', 'k_lms'
-* img2img samplers: "DDIM", 'k_dpm_2_a', 'k_dpm_2', 'k_euler_a', 'k_euler', 'k_heun', 'k_lms'
-* Loopback (NEW) ➿: Automatically feed the last generated sample back into img2img
-* Prompt Weighting (NEW) 🏋️: Adjust the strength of different terms in your prompt
-* :fire: gpu device selectable with --gpu <id> :fire:
-* Memory Monitoring 🔥: Shows Vram usage and generation time after outputting.
-* Word Seeds 🔥: Use words instead of seed numbers
-* CFG: Classifier free guidance scale, a feature for fine-tuning your output
-* Launcher Automatic 👑🔥 shortcut to load the model, no more typing in Conda
-* Lighter on Vram: 512x512 img2img & txt2img tested working on 6gb
-* and ????
+* Loopback: Automatically feed the last generated sample back into img2img
 
-# Stable Diffusion web UI
-A browser interface based on Gradio library for Stable Diffusion.
+* Prompt Weighting & Negative Prompts: Gain more control over your creations
 
-Original script with Gradio UI was written by a kind anonymous user. This is a modification.
+* Selectable GPU usage from Settings tab
 
-![](https://github.com/sd-webui/stable-diffusion-webui/blob/master/images/txt2img.jpg)
-![](https://github.com/sd-webui/stable-diffusion-webui/blob/master/images/img2img.jpg)
-![](https://github.com/sd-webui/stable-diffusion-webui/blob/master/images/gfpgan.jpg)
-![](https://github.com/sd-webui/stable-diffusion-webui/blob/master/images/esrgan.jpg)
+* Word Seeds: Use words instead of seed numbers
 
-### Additional Models
+* Automated Launcher: Activate conda and run Stable Diffusion with a single command
 
-**GFPGAN**, **RealESRGAN** and **LDSR** optional models are supported. Detailed download instructios is available in the wiki [wiki](https://github.com/sd-webui/stable-diffusion-webui/wiki/Installation#optional-additional-models).
-Please ensure that you run `webui.cmd` OR `webui_streamlit.cmd` **first** before downloading and initializing `/stable-diffusion-webui/src` folder.  
+* Lighter on VRAM: 512x512 Text2Image & Image2Image tested working on 4GB (with *optimized* mode enabled in Settings)
 
-### Web UI
+* Prompt validation: If your prompt is too long, you will get a warning in the text output field
 
-When launching, you may get a very long warning message related to some weights not being used. You may freely ignore it.
-After a while, you will get a message like this:
+* Sequential seeds for batches: If you use a seed of 1000 to generate two batches of two images each, four generated images will have seeds: `1000, 1001, 1002, 1003`.
 
-```
-Running on local URL:  http://127.0.0.1:7860/
-```
+* Prompt matrix: Separate multiple prompts using the `|` character, and the system will produce an image for every combination of them.
 
-Open the URL in browser, and you are good to go.
+* [Gradio] Advanced img2img editor with Mask and crop capabilities
 
-## Features
-The script creates a web UI for Stable Diffusion's txt2img and img2img scripts. Following are features added
-that are not in original script.
+* [Gradio] Mask painting 🖌️: Powerful tool for re-generating only specific parts of an image you want to change (currently Gradio only)
+
+# SD WebUI
+
+An easy way to work with Stable Diffusion right from your browser.
+
+## Streamlit
+
+![](images/streamlit/streamlit-t2i.png)
+
+**Features:**
+
+- Clean UI with an easy to use design, with support for widescreen displays
+- *Dynamic live preview* of your generations
+- Easily customizable defaults, right from the WebUI's Settings tab
+- An integrated gallery to show the generations for a prompt
+- *Optimized VRAM* usage for bigger generations or usage on lower end GPUs
+- *Text to Video:* Generate video clips from text prompts right from the WebUI (WIP)
+- Image to Text: Use [CLIP Interrogator](https://github.com/pharmapsychotic/clip-interrogator) to interrogate an image and get a prompt that you can use to generate a similar image using Stable Diffusion.
+- *Concepts Library:* Run custom embeddings others have made via textual inversion.
+- Textual Inversion training: Train your own embeddings on any photo you want and use it on your prompt.
+- **Currently in development: [Stable Horde](https://stablehorde.net/) integration; ImgLab, batch inputs, & mask editor from Gradio
+
+**Prompt Weights & Negative Prompts:**
+
+To give a token (tag recognized by the AI) a specific or increased weight (emphasis), add `:0.##` to the prompt, where `0.##` is a decimal that will specify the weight of all tokens before the colon.
+Ex: `cat:0.30, dog:0.70` or `guy riding a bicycle :0.7, incoming car :0.30`
+
+Negative prompts can be added by using  `###` , after which any tokens will be seen as negative. 
+Ex: `cat playing with string ### yarn` will negate `yarn` from the generated image. 
+
+Negatives are a very powerful tool to get rid of contextually similar or related topics, but **be careful when adding them since the AI might see connections you can't**, and end up outputting gibberish
+
+**Tip:* Try using the same seed with different prompt configurations or weight values see how the AI understands them, it can lead to prompts that are more well-tuned and less prone to error.
+
+Please see the [Streamlit Documentation](docs/4.streamlit-interface.md) to learn more.
+
+## Gradio [Legacy]
+
+![](images/gradio/gradio-t2i.png)
+
+**Features:**
+
+- Older UI that is functional and feature complete.
+- Has access to all upscaling models, including LSDR.
+- Dynamic prompt entry automatically changes your generation settings based on `--params` in a prompt.
+- Includes quick and easy ways to send generations to Image2Image or the Image Lab for upscaling.
+
+**Note: the Gradio interface is no longer being actively developed by Sygil.Dev and is only receiving bug fixes.**
+
+Please see the [Gradio Documentation](docs/5.gradio-interface.md) to learn more.
+
+## Image resizing and processing
+
+Fit or fill your input image into the desired output format by cropping or uncropping your image.
+This allows for composition adjustments and generative backgrounds to help the diffusion process with more pixel data.
+
+![](images/image_resize_processing/all_image_resize_processing.png)
+
+Please see the [Resize and Processing Documentation](docs/9.image-resize-processing.md) to learn more.
+
+## Image Upscalers
+
+---
 
 ### GFPGAN
-Lets you improve faces in pictures using the GFPGAN model. There is a checkbox in every tab to use GFPGAN at 100%, and
-also a separate tab that just allows you to use GFPGAN on any picture, with a slider that controls how strong the effect is.
 
 ![](images/GFPGAN.png)
 
+Lets you improve faces in pictures using the GFPGAN model. There is a checkbox in every tab to use GFPGAN at 100%, and also a separate tab that just allows you to use GFPGAN on any picture, with a slider that controls how strong the effect is.
+
+If you want to use GFPGAN to improve generated faces, you need to install it separately.
+Download [GFPGANv1.4.pth](https://github.com/TencentARC/GFPGAN/releases/download/v1.3.4/GFPGANv1.4.pth) and put it
+into the `/sygil-webui/models/gfpgan` directory. 
+
 ### RealESRGAN
-Lets you double the resolution of generated images. There is a checkbox in every tab to use RealESRGAN, and you can choose between the regular upscaler and the anime version.
-There is also a separate tab for using RealESRGAN on any picture.
 
 ![](images/RealESRGAN.png)
 
-### Sampling method selection
-txt2img samplers: "DDIM", "PLMS", 'k_dpm_2_a', 'k_dpm_2', 'k_euler_a', 'k_euler', 'k_heun', 'k_lms'
-img2img samplers: "DDIM", 'k_dpm_2_a', 'k_dpm_2', 'k_euler_a', 'k_euler', 'k_heun', 'k_lms'
+Lets you double the resolution of generated images. There is a checkbox in every tab to use RealESRGAN, and you can choose between the regular upscaler and the anime version.
+There is also a separate tab for using RealESRGAN on any picture.
 
-![](images/sampling.png)
+Download [RealESRGAN_x4plus.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth) and [RealESRGAN_x4plus_anime_6B.pth](https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth).
+Put them into the `sygil-webui/models/realesrgan` directory. 
 
-### Prompt matrix
-Separate multiple prompts using the `|` character, and the system will produce an image for every combination of them.
-For example, if you use `a busy city street in a modern city|illustration|cinematic lighting` prompt, there are four combinations possible (first part of prompt is always kept):
+### LSDR
 
-- `a busy city street in a modern city`
-- `a busy city street in a modern city, illustration`
-- `a busy city street in a modern city, cinematic lighting`
-- `a busy city street in a modern city, illustration, cinematic lighting`
+Download **LDSR** [project.yaml](https://heibox.uni-heidelberg.de/f/31a76b13ea27482981b4/?dl=1) and [model last.cpkt](https://heibox.uni-heidelberg.de/f/578df07c8fc04ffbadf3/?dl=1). Rename last.ckpt to model.ckpt and place both under `sygil-webui/models/ldsr/`
 
-Four images will be produced, in this order, all with same seed and each with corresponding prompt:
-![](images/prompt-matrix.png)
+### GoBig, and GoLatent *(Currently on the Gradio version Only)*
 
-Another example, this time with 5 prompts and 16 variations:
-![](images/prompt_matrix.jpg)
+More powerful upscalers that uses a seperate Latent Diffusion model to more cleanly upscale images.
 
-If you use this feature, batch count will be ignored, because the number of pictures to produce
-depends on your prompts, but batch size will still work (generating multiple pictures at the
-same time for a small speed boost).
-
-### Flagging (Broken after UI changed to gradio.Blocks() see [Flag button missing from new UI](https://github.com/sd-webui/stable-diffusion-webui/issues/50))
-Click the Flag button under the output section, and generated images will be saved to `log/images` directory, and generation parameters
-will be appended to a csv file `log/log.csv` in the `/sd` directory.
-
-> but every image is saved, why would I need this?
-
-If you're like me, you experiment a lot with prompts and settings, and only few images are worth saving. You can
-just save them using right click in browser, but then you won't be able to reproduce them later because you will not
-know what exact prompt created the image. If you use the flag button, generation paramerters will be written to csv file,
-and you can easily find parameters for an image by searching for its filename.
-
-### Copy-paste generation parameters
-A text output provides generation parameters in an easy to copy-paste form for easy sharing.
-
-![](images/kopipe.png)
-
-If you generate multiple pictures, the displayed seed will be the seed of the first one.
-
-### Correct seeds for batches
-If you use a seed of 1000 to generate two batches of two images each, four generated images will have seeds: `1000, 1001, 1002, 1003`.
-Previous versions of the UI would produce `1000, x, 1001, x`, where x is an iamge that can't be generated by any seed.
-
-### Resizing
-There are three options for resizing input images in img2img mode:
-
-- Just resize - simply resizes source image to target resolution, resulting in incorrect aspect ratio
-- Crop and resize - resize source image preserving aspect ratio so that entirety of target resolution is occupied by it, and crop parts that stick out
-- Resize and fill - resize source image preserving aspect ratio so that it entirely fits target resolution, and fill empty space by rows/columns from source image
-
-Example:
-![](images/resizing.jpg)
-
-### Loading
-Gradio's loading graphic has a very negative effect on the processing speed of the neural network.
-My RTX 3090 makes images about 10% faster when the tab with gradio is not active. By default, the UI
-now hides loading progress animation and replaces it with static "Loading..." text, which achieves
-the same effect. Use the --no-progressbar-hiding commandline option to revert this and show loading animations.
-
-### Prompt validation
-Stable Diffusion has a limit for input text length. If your prompt is too long, you will get a
-warning in the text output field, showing which parts of your text were truncated and ignored by the model.
-
-### Loopback
-A checkbox for img2img allowing to automatically feed output image as input for the next batch. Equivalent to
-saving output image, and replacing input image with it. Batch count setting controls how many iterations of
-this you get.
-
-Usually, when doing this, you would choose one of many images for the next iteration yourself, so the usefulness
-of this feature may be questionable, but I've managed to get some very nice outputs with it that I wasn't abble
-to get otherwise.
-
-Example: (cherrypicked result; original picture by anon)
-
-![](images/loopback.jpg)
-
-
-### --help
-```
-optional arguments:
-  -h, --help            show this help message and exit
-  --outdir [OUTDIR]     dir to write results to
-  --outdir_txt2img [OUTDIR_TXT2IMG]
-                        dir to write txt2img results to (overrides --outdir)
-  --outdir_img2img [OUTDIR_IMG2IMG]
-                        dir to write img2img results to (overrides --outdir)
-  --save-metadata       Whether to embed the generation parameters in the sample images
-  --skip-grid           do not save a grid, only individual samples. Helpful when evaluating lots of samples
-  --skip-save           do not save indiviual samples. For speed measurements.
-  --n_rows N_ROWS       rows in the grid; use -1 for autodetect and 0 for n_rows to be same as batch_size (default:
-                        -1)
-  --config CONFIG       path to config which constructs model
-  --ckpt CKPT           path to checkpoint of model
-  --precision {full,autocast}
-                        evaluate at this precision
-  --gfpgan-dir GFPGAN_DIR
-                        GFPGAN directory
-  --realesrgan-dir REALESRGAN_DIR
-                        RealESRGAN directory
-  --realesrgan-model REALESRGAN_MODEL
-                        Upscaling model for RealESRGAN
-  --no-verify-input     do not verify input to check if it's too long
-  --no-half             do not switch the model to 16-bit floats
-  --no-progressbar-hiding
-                        do not hide progressbar in gradio UI (we hide it because it slows down ML if you have hardware
-                        accleration in browser)
-  --defaults DEFAULTS   path to configuration file providing UI defaults, uses same format as cli parameter
-  --gpu GPU             choose which GPU to use if you have multiple
-  --extra-models-cpu    run extra models (GFGPAN/ESRGAN) on cpu
-  --esrgan-cpu          run ESRGAN on cpu
-  --gfpgan-cpu          run GFPGAN on cpu
-  --cli CLI             don't launch web server, take Python function kwargs from this file.
-```
+Please see the [Image Enhancers Documentation](docs/6.image_enhancers.md) to learn more.
 
 -----
 
+### *Original Information From The Stable Diffusion Repo:*
+
 # Stable Diffusion
+
 *Stable Diffusion was made possible thanks to a collaboration with [Stability AI](https://stability.ai/) and [Runway](https://runwayml.com/) and builds upon our previous work:*
 
 [**High-Resolution Image Synthesis with Latent Diffusion Models**](https://ommer-lab.com/research/latent-diffusion-models/)<br/>
@@ -234,7 +182,6 @@ optional arguments:
 
 which is available on [GitHub](https://github.com/CompVis/latent-diffusion). PDF at [arXiv](https://arxiv.org/abs/2112.10752). Please also visit our [Project page](https://ommer-lab.com/research/latent-diffusion-models/).
 
-![txt2img-stable2](assets/stable-samples/txt2img/merged-0006.png)
 [Stable Diffusion](#stable-diffusion-v1) is a latent text-to-image diffusion
 model.
 Thanks to a generous compute donation from [Stability AI](https://stability.ai/) and support from [LAION](https://laion.ai/), we were able to train a Latent Diffusion Model on 512x512 images from a subset of the [LAION-5B](https://laion.ai/blog/laion-5b/) database. 
@@ -254,14 +201,13 @@ then finetuned on 512x512 images.
 in its training data. 
 Details on the training procedure and data, as well as the intended use of the model can be found in the corresponding [model card](https://huggingface.co/CompVis/stable-diffusion).
 
-## Comments 
+## Comments
 
 - Our codebase for the diffusion models builds heavily on [OpenAI's ADM codebase](https://github.com/openai/guided-diffusion)
-and [https://github.com/lucidrains/denoising-diffusion-pytorch](https://github.com/lucidrains/denoising-diffusion-pytorch). 
-Thanks for open-sourcing!
+  and [https://github.com/lucidrains/denoising-diffusion-pytorch](https://github.com/lucidrains/denoising-diffusion-pytorch). 
+  Thanks for open-sourcing!
 
 - The implementation of the transformer encoder is from [x-transformers](https://github.com/lucidrains/x-transformers) by [lucidrains](https://github.com/lucidrains?tab=repositories). 
-
 
 ## BibTeX
 
@@ -274,7 +220,4 @@ Thanks for open-sourcing!
       archivePrefix={arXiv},
       primaryClass={cs.CV}
 }
-
 ```
-
-

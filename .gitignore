@@ -28,7 +28,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -63,5 +62,7 @@ condaenv.*.requirements.txt
 /log/log.csv
 /flagged/*
 /gfpgan/*
-/models/custom/
-/z_version_env.tmp
+/models/*
+z_version_env.tmp
+scripts/bridgeData.py
+/user_data/*

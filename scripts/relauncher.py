@@ -1,4 +1,19 @@
-import os, time
+# This file is part of sygil-webui (https://github.com/Sygil-Dev/sygil-webui/).
+
+# Copyright 2022 Sygil-Dev team.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>. 
+import os, time, argparse
 
 # USER CHANGABLE ARGUMENTS
 
@@ -21,9 +36,23 @@ share = False
 
 # Generate tiling images
 tiling = False
-
 # Enter other `--arguments` you wish to use - Must be entered as a `--argument ` syntax
 additional_arguments = ""
+
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('-v', '--verbosity', action='count', default=0, help="The default logging level is ERROR or higher. This value increases the amount of logging seen in your screen")
+parser.add_argument('-n', '--horde_name', action="store", required=False, type=str, help="The server name for the Horde. It will be shown to the world and there can be only one.")
+parser.add_argument('--bridge', action="store_true", required=False, default=False, help="When specified, start the stable horde bridge instead of the webui.")
+args = parser.parse_args()
+
+if args.bridge:
+    additional_arguments += f' --bridge'
+    if args.horde_name:
+        additional_arguments += f' --horde_name "{args.horde_name}"'
+    if args.verbosity:
+        for iter in range(args.verbosity):
+            additional_arguments += ' -v'
+    print(f"Additional args: {additional_arguments}")
 
 
 

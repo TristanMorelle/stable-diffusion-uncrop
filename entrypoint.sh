@@ -1,6 +1,21 @@
 #!/bin/bash
+# This file is part of sygil-webui (https://github.com/Sygil-Dev/sygil-webui/).
+
+# Copyright 2022 Sygil-Dev team.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>. 
 #
-# Starts the gui inside the docker container using the conda env
+# Starts the webserver inside the docker container
 #
 
 # set -x
@@ -9,119 +24,109 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 cd $SCRIPT_DIR
 export PYTHONPATH=$SCRIPT_DIR
 
-MODEL_DIR="${SCRIPT_DIR}/model_cache"
+if [[ $PUBLIC_KEY ]]
+then
+    mkdir -p ~/.ssh
+    chmod 700 ~/.ssh
+    cd ~/.ssh
+    echo $PUBLIC_KEY >> authorized_keys
+    chmod 700 -R ~/.ssh
+    cd /
+    service ssh start
+    echo "SSH Service Started"
+fi
+
+
+MODEL_DIR="${SCRIPT_DIR}/user_data/model_cache"
+mkdir -p $MODEL_DIR
 # Array of model files to pre-download
 # local filename
 # local path in container (no trailing slash)
 # download URL
 # sha256sum
 MODEL_FILES=(
-    'model.ckpt models/ldm/stable-diffusion-v1 https://www.googleapis.com/storage/v1/b/aai-blog-files/o/sd-v1-4.ckpt?alt=media fe4efff1e174c627256e44ec2991ba279b3816e364b49f9be2abc0b3ff3f8556'
-    'GFPGANv1.3.pth src/gfpgan/experiments/pretrained_models https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.3.pth c953a88f2727c85c3d9ae72e2bd4846bbaf59fe6972ad94130e23e7017524a70'
-    'RealESRGAN_x4plus.pth src/realesrgan/experiments/pretrained_models https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth 4fa0d38905f75ac06eb49a7951b426670021be3018265fd191d2125df9d682f1'
-    'RealESRGAN_x4plus_anime_6B.pth src/realesrgan/experiments/pretrained_models https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth f872d837d3c90ed2e05227bed711af5671a6fd1c9f7d7e91c911a61f155e99da'
-    'project.yaml src/latent-diffusion/experiments/pretrained_models https://heibox.uni-heidelberg.de/f/31a76b13ea27482981b4/?dl=1 9d6ad53c5dafeb07200fb712db14b813b527edd262bc80ea136777bdb41be2ba'
-    'model.ckpt src/latent-diffusion/experiments/pretrained_models https://heibox.uni-heidelberg.de/f/578df07c8fc04ffbadf3/?dl=1 c209caecac2f97b4bb8f4d726b70ac2ac9b35904b7fc99801e1f5e61f9210c13'
+    'model.ckpt models/ldm/stable-diffusion-v1 https://www.googleapis.com/storage/v1/b/aai-blog-files/o/sd-v1-4.ckpt?alt=media'
+    'GFPGANv1.4.pth models/gfpgan https://github.com/TencentARC/GFPGAN/releases/download/v1.3.4/GFPGANv1.4.pth'
+    'detection_Resnet50_Final.pth gfpgan/weights https://github.com/xinntao/facexlib/releases/download/v0.1.0/detection_Resnet50_Final.pth'
+    'parsing_parsenet.pth gfpgan/weights https://github.com/xinntao/facexlib/releases/download/v0.2.2/parsing_parsenet.pth'
+    'RealESRGAN_x4plus.pth models/realesrgan https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth'
+    'RealESRGAN_x4plus_anime_6B.pth models/realesrgan https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth'
+    'project.yaml models/ldsr https://heibox.uni-heidelberg.de/f/31a76b13ea27482981b4/?dl=1'
+    'model.ckpt models/ldsr https://heibox.uni-heidelberg.de/f/578df07c8fc04ffbadf3/?dl=1'
+    'waifu-diffusion.ckpt models/custom https://huggingface.co/crumb/pruned-waifu-diffusion/resolve/main/model-pruned.ckpt'
+    'trinart.ckpt models/custom https://huggingface.co/naclbit/trinart_stable_diffusion_v2/resolve/main/trinart2_step95000.ckpt'
+    'model__base_caption.pth models/blip https://storage.googleapis.com/sfr-vision-language-research/BLIP/models/model*_base_caption.pth'
+    'pytorch_model.bin models/clip-vit-large-patch14 https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/pytorch_model.bin'
+    'config.json models/clip-vit-large-patch14 https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/config.json'
+    'merges.txt models/clip-vit-large-patch14 https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/merges.txt'
+    'preprocessor_config.json models/clip-vit-large-patch14 https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/preprocessor_config.json'
+    'special_tokens_map.json models/clip-vit-large-patch14 https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/special_tokens_map.json'
+    'tokenizer.json models/clip-vit-large-patch14 https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/tokenizer.json'
+    'tokenizer_config.json models/clip-vit-large-patch14 https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/tokenizer_config.json'
+    'vocab.json models/clip-vit-large-patch14 https://huggingface.co/openai/clip-vit-large-patch14/resolve/main/vocab.json'
 )
 
-# Conda environment installs/updates
-# @see https://github.com/ContinuumIO/docker-images/issues/89#issuecomment-467287039
-ENV_NAME="ldm"
-ENV_FILE="${SCRIPT_DIR}/environment.yaml"
-ENV_UPDATED=0
-ENV_MODIFIED=$(date -r $ENV_FILE "+%s")
-ENV_MODIFED_FILE="${SCRIPT_DIR}/.env_updated"
-if [[ -f $ENV_MODIFED_FILE ]]; then ENV_MODIFIED_CACHED=$(<${ENV_MODIFED_FILE}); else ENV_MODIFIED_CACHED=0; fi
-export PIP_EXISTS_ACTION=w
-
-# Create/update conda env if needed
-if ! conda env list | grep ".*${ENV_NAME}.*" >/dev/null 2>&1; then
-    echo "Could not find conda env: ${ENV_NAME} ... creating ..."
-    conda env create -f $ENV_FILE
-    echo "source activate ${ENV_NAME}" > /root/.bashrc
-    ENV_UPDATED=1
-elif [[ ! -z $CONDA_FORCE_UPDATE && $CONDA_FORCE_UPDATE == "true" ]] || (( $ENV_MODIFIED > $ENV_MODIFIED_CACHED )); then
-    echo "Updating conda env: ${ENV_NAME} ..."
-    conda env update --file $ENV_FILE --prune
-    ENV_UPDATED=1
-fi
-
-# Clear artifacts from conda after create/update
-# @see https://docs.conda.io/projects/conda/en/latest/commands/clean.html
-if (( $ENV_UPDATED > 0 )); then
-    conda clean --all
-    echo -n $ENV_MODIFIED > $ENV_MODIFED_FILE
-fi
-
-# activate conda env
-. /opt/conda/etc/profile.d/conda.sh
-conda activate $ENV_NAME
-conda info | grep active
-
-# Function to checks for valid hash for model files and download/replaces if invalid or does not exist
-validateDownloadModel() {
+downloadModel() {
     local file=$1
     local path="${SCRIPT_DIR}/${2}"
+    local path_dir="${MODEL_DIR}/$2"
     local url=$3
-    local hash=$4
 
-    echo "checking ${file}..."
-    sha256sum --check --status <<< "${hash} ${MODEL_DIR}/${file}.${hash}"
-    if [[ $? == "1" ]]; then
+    if [[ ! -e "${MODEL_DIR}/$2/${file}" ]]; then
         echo "Downloading: ${url} please wait..."
+        mkdir -p ${MODEL_DIR}/$2
         mkdir -p ${path}
-        wget --output-document=${MODEL_DIR}/${file}.${hash} --no-verbose --show-progress --progress=dot:giga ${url}
-        ln -sf ${MODEL_DIR}/${file}.${hash} ${path}/${file}
+        wget --output-document=${MODEL_DIR}/$2/${file} --no-verbose --show-progress --progress=dot:giga ${url}
+        ln -sf ${MODEL_DIR}/$2/${file} ${path}/${file}
         if [[ -e "${path}/${file}" ]]; then
             echo "saved ${file}"
         else
-            echo "error saving ${path}/${file}!"
+            echo "error saving ${MODEL_DIR}/$2/${file}!"
             exit 1
-        fi
-    else
-        if [[ ! -e ${path}/${file} || ! -L ${path}/${file} ]]; then
-            mkdir -p ${path}
-            ln -sf ${MODEL_DIR}/${file}.${hash} ${path}/${file}
-            echo -e "linked valid ${file}\n"
-        else
-            echo -e "${file} is valid!\n"
         fi
     fi
 }
 
-# Validate model files
-echo "Validating model files..."
+echo "Downloading model files..."
 for models in "${MODEL_FILES[@]}"; do
     model=($models)
-    if [[ ! -e ${model[1]}/${model[0]} || ! -L ${model[1]}/${model[0]} || -z $VALIDATE_MODELS || $VALIDATE_MODELS == "true" ]]; then
-        validateDownloadModel ${model[0]} ${model[1]} ${model[2]} ${model[3]}
+    if [[ ! -e ${model[1]}/${model[0]} || ! -L ${model[1]}/${model[0]} ]]; then
+        downloadModel ${model[0]} ${model[1]} ${model[2]}
     fi
 done
 
-# Launch web gui
-if [[ ! -z $WEBUI_SCRIPT && $WEBUI_SCRIPT == "webui_streamlit.py" ]]; then
-    launch_command="streamlit run scripts/${WEBUI_SCRIPT:-webui.py} $WEBUI_ARGS"
+# Create directory for diffusers models
+mkdir -p ${MODEL_DIR}/diffusers/stable-diffusion-v1-4
+mkdir -p ${MODEL_DIR}/diffusers/waifu-diffusion
+mkdir -p ${SCRIPT_DIR}/diffusers/stable-diffusion-v1-4
+mkdir -p ${SCRIPT_DIR}/diffusers/waifu-diffusion
+# Link tokenizer to diffusers models
+ln -fs ${SCRIPT_DIR}/models/clip-vit-large-patch14/ ${SCRIPT_DIR}/diffusers/stable-diffusion-v1-4/tokenizer
+ln -fs ${SCRIPT_DIR}/models/clip-vit-large-patch14/ ${SCRIPT_DIR}/diffusers/waifu-diffusion/tokenizer
+
+if [[ -e "${MODEL_DIR}/sd-concepts-library" ]]; then
+    # concept library exists, update
+    cd ${MODEL_DIR}/sd-concepts-library
+    git pull
 else
-    launch_command="python scripts/${WEBUI_SCRIPT:-webui.py} $WEBUI_ARGS"
+    # concept library does not exist, clone
+    cd ${MODEL_DIR}
+    git clone https://github.com/Sygil-Dev/sd-concepts-library.git
 fi
+# create directory and link concepts library
+mkdir -p ${SCRIPT_DIR}/models/custom
+ln -fs ${MODEL_DIR}/sd-concepts-library/sd-concepts-library/ ${SCRIPT_DIR}/models/custom/sd-concepts-library
 
-launch_message="entrypoint.sh: Run ${launch_command}..."
-if [[ -z $WEBUI_RELAUNCH || $WEBUI_RELAUNCH == "true" ]]; then
-    n=0
-    while true; do
-        echo $launch_message
+mkdir -p ${SCRIPT_DIR}/user_data/outputs
+ln -fs ${SCRIPT_DIR}/user_data/outputs/ ${SCRIPT_DIR}/outputs
 
-        if (( $n > 0 )); then
-            echo "Relaunch count: ${n}"
-        fi
+echo "export HF_HOME=${MODEL_DIR}" >> ~/.bashrc
+echo "export XDG_CACHE_HOME=${MODEL_DIR}" >> ~/.bashrc
+echo "export TRANSFORMERS_CACHE=${MODEL_DIR}" >> ~/.bashrc
+source ~/.bashrc
+cd $SCRIPT_DIR
+launch_command="streamlit run ${SCRIPT_DIR}/scripts/webui_streamlit.py"
 
-        $launch_command
+$launch_command
 
-        echo "entrypoint.sh: Process is ending. Relaunching in 0.5s..."
-        ((n++))
-        sleep 0.5
-    done
-else
-    echo $launch_message
-    $launch_command
-fi
+sleep infinity
